@@ -1,0 +1,87 @@
+<div class="page gift-page">
+  <div class="container">
+    <header class="page-head head">
+      <span class="eyebrow">Gift a loved one</span>
+      <h1 class="display" appRevealText="chars">Gifts they'll <em>carry for years.</em></h1>
+      <p class="lead">Choose a handcrafted SPUNI piece and we'll send it straight to them: wrapped by hand, with your note
+        tucked inside and no prices in sight.</p>
+    </header>
+
+    <ol class="steps" aria-label="How gifting works">
+      <li>
+        <span class="n">01</span>
+        <i class="bi bi-bag-heart"></i>
+        <h2>Choose the piece</h2>
+        <p>Pick something below, or anything from the shop. Add initials to make it unmistakably theirs.</p>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <i class="bi bi-pencil"></i>
+        <h2>Write your note</h2>
+        <p>At checkout, switch on <b>Send it as a gift</b>. Add their name and a message, and we'll write it on a card by hand.</p>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <i class="bi bi-gift"></i>
+        <h2>We wrap and deliver</h2>
+        <p>Enter their address as the delivery address. It arrives in signature gift wrap
+          @if (wrap()) { (+{{ wrap() | inr }}) } with prices hidden on the packing slip.</p>
+      </li>
+    </ol>
+
+    <section class="picks" aria-labelledby="picks-title">
+      <div class="picks-head">
+        <h2 id="picks-title" class="title">Gift <em>ideas</em></h2>
+        <div class="occasions" role="tablist" aria-label="Filter gift ideas">
+          @for (o of occasions; track o.key) {
+            <button type="button" class="chip" role="tab" [class.active]="occasion().key === o.key"
+                    [attr.aria-selected]="occasion().key === o.key" (click)="occasion.set(o)">{{ o.label }}</button>
+          }
+        </div>
+      </div>
+
+      @if (picks().loading) {
+        <div class="grid">
+          @for (s of [1, 2, 3, 4]; track s) { <div class="skeleton sk"></div> }
+        </div>
+      } @else if (picks().failed) {
+        <p class="alert error" role="alert">We couldn't load gift ideas right now. Please refresh in a moment.</p>
+      } @else if (!picks().items.length) {
+        <p class="muted">Nothing here just yet. <a class="link-arrow" routerLink="/shop">Browse the full collection</a></p>
+      } @else {
+        <div class="grid">
+          @for (p of picks().items; track p.id; let i = $index) {
+            <app-product-card [product]="p" [index]="i" />
+          }
+        </div>
+      }
+
+      <div class="more">
+        <a class="btn btn-ghost" routerLink="/shop" [queryParams]="{ sort: 'featured' }">See every piece</a>
+      </div>
+    </section>
+
+    <section class="promise panel" aria-label="Gift promises">
+      <div>
+        <i class="bi bi-box2-heart"></i>
+        <b>Signature gift wrap</b>
+        <span>Hand-folded paper, a satin ribbon and the SPUNI dust bag inside.</span>
+      </div>
+      <div>
+        <i class="bi bi-envelope-paper"></i>
+        <b>Your words, handwritten</b>
+        <span>Up to 300 characters, written on a card by our studio.</span>
+      </div>
+      <div>
+        <i class="bi bi-eye-slash"></i>
+        <b>No prices inside</b>
+        <span>The packing slip leaves out prices, so it's all about the gift.</span>
+      </div>
+      <div>
+        <i class="bi bi-magic"></i>
+        <b>Make it personal</b>
+        <span><a routerLink="/customization">Add initials or a custom design</a> before it ships.</span>
+      </div>
+    </section>
+  </div>
+</div>

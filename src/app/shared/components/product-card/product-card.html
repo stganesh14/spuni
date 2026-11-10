@@ -1,0 +1,62 @@
+<article class="card" appTilt="5" [class.sold-out]="!product().in_stock">
+  <div class="media">
+    @if (product().image_url) {
+      <img
+        class="img main"
+        [src]="product().image_url"
+        [alt]="product().name"
+        [attr.loading]="eager() ? 'eager' : 'lazy'"
+        decoding="async"
+        [appZoomable]="product().image_url"
+        [zoomGallery]="gallery()"
+        [zoomTitle]="product().name"
+        [zoomLink]="link()"
+      />
+    } @else {
+      <div class="img placeholder" aria-hidden="true"><span>SPUNI</span></div>
+    }
+    @if (product().hover_image_url) {
+      <img class="img hover" [src]="product().hover_image_url" alt="" loading="lazy" decoding="async" aria-hidden="true" />
+    }
+    <span class="glare" aria-hidden="true"></span>
+
+    <div class="tags">
+      @if (!product().in_stock) {
+        <span class="badge sold">Sold out</span>
+      } @else if (product().badge) {
+        <span class="badge" [class.new]="product().badge === 'New'">{{ product().badge }}</span>
+      }
+      @if (discount() > 0) { <span class="badge off">-{{ discount() }}%</span> }
+    </div>
+
+    <button
+      type="button"
+      class="heart"
+      [class.on]="saved()"
+      (click)="toggleWishlist($event)"
+      [attr.aria-pressed]="saved()"
+      [attr.aria-label]="(saved() ? 'Remove ' : 'Save ') + product().name + (saved() ? ' from' : ' to') + ' wishlist'"
+    >
+      <i class="bi" [class.bi-heart-fill]="saved()" [class.bi-heart]="!saved()"></i>
+    </button>
+
+    <span class="zoom-hint" aria-hidden="true"><i class="bi bi-zoom-in"></i></span>
+
+    <button type="button" class="quick-add" (click)="addToBag($event)" [disabled]="!product().in_stock">
+      <span>{{ product().in_stock ? 'Add to bag' : 'Sold out' }}</span>
+      <i class="bi bi-bag-plus"></i>
+    </button>
+  </div>
+
+  <a class="info" [routerLink]="link()">
+    <span class="cat">{{ product().category.name }}</span>
+    <h3 class="name">{{ product().name }}</h3>
+    <div class="price-row">
+      <span class="price">{{ product().price_paise | inr }}</span>
+      @if (product().compare_at_price_paise) {
+        <s class="was">{{ product().compare_at_price_paise | inr }}</s>
+      }
+      <span class="go" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+    </div>
+  </a>
+</article>

@@ -1,0 +1,95 @@
+<app-page-header title="Orders" eyebrow="Sales" [subtitle]="result() ? result()!.total + ' order(s)' : ''" />
+
+<div class="toolbar" role="search">
+  <label class="visually-hidden" for="order-search">Search orders</label>
+  <input
+    id="order-search"
+    class="input search"
+    type="search"
+    maxlength="80"
+    placeholder="Order number, email, name or phone…"
+    [value]="q()"
+    (input)="onSearch($any($event.target).value)"
+  />
+  <label class="visually-hidden" for="order-status">Status</label>
+  <select id="order-status" class="select" (change)="setStatus($any($event.target).value)">
+    <option value="" [selected]="!status()">All statuses</option>
+    @for (s of statuses; track s.value) {
+      <option [value]="s.value" [selected]="status() === s.value">{{ s.label }}</option>
+    }
+  </select>
+  <label class="visually-hidden" for="order-type">Type</label>
+  <select id="order-type" class="select" (change)="setType($any($event.target).value)">
+    <option value="" [selected]="!type()">All types</option>
+    <option value="product" [selected]="type() === 'product'">Products</option>
+    <option value="gift_card" [selected]="type() === 'gift_card'">Gift cards</option>
+  </select>
+</div>
+
+<section class="card card-flush">
+  <app-state
+    [loading]="loading() && !result()"
+    [error]="error()"
+    [empty]="!!result() && result()!.items.length === 0"
+    emptyTitle="No orders found"
+    emptyText="Orders matching your filters will appear here."
+    (retry)="load()"
+  />
+  @if (result(); as r) {
+    @if (r.items.length && !error()) {
+      <div class="table-wrap" [style.opacity]="loading() ? 0.6 : 1">
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <th scope="col">Order</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Items</th>
+              <th scope="col">Status</th>
+              <th scope="col">Payment</th>
+              <th scope="col" class="num">Total</th>
+              <th scope="col">Change status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of r.items; track o.number) {
+              <tr>
+                <td class="primary-cell" data-label="">
+                  <a class="row-link mono" [routerLink]="['/orders', o.number]">{{ o.number }}</a>
+                  <div class="muted small">{{ o.created_at | dt: true }}</div>
+                </td>
+                <td data-label="Customer">
+                  <div>{{ o.customer_name || '—' }}</div>
+                  <div class="muted small">{{ o.email }}</div>
+                </td>
+                <td data-label="Items">
+                  {{ o.order_type === 'gift_card' ? 'Gift card' : o.item_count + ' item(s)' }}
+                  @if (o.is_gift) {
+                    <span class="badge" data-tone="gold">Gift</span>
+                  }
+                </td>
+                <td data-label="Status"><app-status [value]="o.status" /></td>
+                <td data-label="Payment"><app-status [value]="o.payment_status" /></td>
+                <td class="num" data-label="Total">{{ o.total_paise | money }}</td>
+                <td data-label="Change status">
+                  @if (o.allowed_transitions.length) {
+                    <label class="visually-hidden" [for]="'st-' + o.number">Change status of {{ o.number }}</label>
+                    <select [id]="'st-' + o.number" class="select status-select" [disabled]="busy() === o.number"
+                            (change)="changeStatus(o, $any($event.target))">
+                      <option value="" selected>{{ busy() === o.number ? 'Updating…' : 'Change status…' }}</option>
+                      @for (s of o.allowed_transitions; track s) {
+                        <option [value]="s">{{ actionLabel(s) }}{{ needsDetails(s) ? '…' : '' }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <span class="muted small">No further changes</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager [page]="r.page" [pages]="r.pages" [total]="r.total" [pageSize]="r.page_size" (go)="goTo($event)" />
+    }
+  }
+</section>

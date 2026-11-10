@@ -1,0 +1,51 @@
+<section class="cl" id="collections" aria-labelledby="cl-title">
+  <div class="particles" aria-hidden="true">
+    @for (p of particles; track $index) {
+      <span [class]="'p p' + p.kind" [style.left.%]="p.left" [style.top.%]="p.top" [style.width.px]="p.size"
+            [style.height.px]="p.size" [style.animation-duration.s]="p.dur" [style.animation-delay.s]="p.delay"></span>
+    }
+  </div>
+
+  <div class="container">
+    @if (heading()) {
+      <header class="head">
+        <span class="eyebrow">The collections</span>
+        <h2 id="cl-title" class="title" appRevealText="chars">Find your <em>everyday</em> companion</h2>
+        <p class="lead">Six families of pieces, each cut, stitched and burnished by hand. Tap a photo to look closer.</p>
+      </header>
+    }
+
+    <div class="stage" #stage>
+      @for (c of categories(); track c.id; let i = $index) {
+        @let s = shape(i);
+        <article class="cat" [class]="'cat ' + s.span" [style.--depth]="s.depth" [style.--dur.s]="s.dur"
+                 [style.--rot.deg]="s.rot" [style.--delay.s]="-i * 0.9">
+          <div class="depth"><div class="float">
+            <div class="card">
+              <div class="media">
+                @if (c.image_url) {
+                  <img [src]="c.image_url" [alt]="c.name" loading="lazy" decoding="async"
+                       [appZoomable]="c.image_url" [zoomTitle]="c.name" [zoomLink]="'/category/' + c.slug"
+                       zoomLinkLabel="Shop this category" />
+                }
+                <span class="count">{{ c.product_count }} {{ c.product_count === 1 ? 'piece' : 'pieces' }}</span>
+                <span class="num" aria-hidden="true">{{ (i + 1).toString().padStart(2, '0') }}</span>
+              </div>
+              <a class="cat-link" [routerLink]="['/category', c.slug]">
+                <span class="cat-name">{{ c.name }}</span>
+                @if (c.tagline) { <span class="cat-tag">{{ c.tagline }}</span> }
+                <span class="go" aria-hidden="true"><i class="bi bi-arrow-up-right"></i></span>
+              </a>
+            </div>
+          </div></div>
+        </article>
+      } @empty {
+        @for (n of [1, 2, 3, 4]; track n) {
+          <div class="cat base"><div class="card skeleton sk"></div></div>
+        }
+      }
+    </div>
+
+    <div class="foot"><a class="btn" routerLink="/shop">Browse every piece <i class="bi bi-arrow-right"></i></a></div>
+  </div>
+</section>

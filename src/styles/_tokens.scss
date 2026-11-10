@@ -1,0 +1,8 @@
+// SPUNI design tokens (SCSS side). Runtime tokens live in :root (styles.scss).
+$bp-sm: 576px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+$ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);

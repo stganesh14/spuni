@@ -1,0 +1,84 @@
+<app-page-header title="Settings" eyebrow="Store" subtitle="Wallet rewards, shipping, gift wrap, gift cards and support details." />
+
+<app-state [loading]="loading()" [error]="error()" (retry)="load()" />
+
+@if (!loading() && !error()) {
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (formError()) {
+      <div class="form-alert" role="alert">
+        {{ formError() }}
+        @if (unmatched().length) {
+          <ul>
+            @for (f of unmatched(); track $index) {
+              <li>{{ f.message }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <div class="grid-halves">
+      <section class="card" style="margin: 0">
+        <h2 class="section-title">SPUNI Wallet</h2>
+        <div class="form-grid">
+          <app-field label="Points earned (%)" for="s-earn" [required]="true" [control]="form.controls.wallet_earn_percent" hint="Of each paid order, 0–50%.">
+            <input id="s-earn" class="input" type="number" min="0" max="50" formControlName="wallet_earn_percent" />
+          </app-field>
+          <app-field label="Max redeemable (%)" for="s-redeem" [required]="true" [control]="form.controls.wallet_max_redeem_percent" hint="Of an order total, 0–100%.">
+            <input id="s-redeem" class="input" type="number" min="0" max="100" formControlName="wallet_max_redeem_percent" />
+          </app-field>
+        </div>
+      </section>
+
+      <section class="card" style="margin: 0">
+        <h2 class="section-title">Shipping &amp; wrapping</h2>
+        <div class="form-grid">
+          <app-field label="Flat shipping fee (₹)" for="s-ship" [required]="true" [control]="form.controls.shipping_flat">
+            <div class="input-group"><span class="addon">₹</span><input id="s-ship" class="input" inputmode="decimal" formControlName="shipping_flat" /></div>
+          </app-field>
+          <app-field label="Free shipping from (₹)" for="s-free" [required]="true" [control]="form.controls.free_shipping_threshold" hint="Order subtotal; 0 = always free.">
+            <div class="input-group"><span class="addon">₹</span><input id="s-free" class="input" inputmode="decimal" formControlName="free_shipping_threshold" /></div>
+          </app-field>
+          <app-field label="Gift wrap fee (₹)" for="s-wrap" [required]="true" [control]="form.controls.gift_wrap">
+            <div class="input-group"><span class="addon">₹</span><input id="s-wrap" class="input" inputmode="decimal" formControlName="gift_wrap" /></div>
+          </app-field>
+        </div>
+      </section>
+
+      <section class="card" style="margin: 0">
+        <h2 class="section-title">Gift cards</h2>
+        <div class="form-grid">
+          <app-field label="Minimum value (₹)" for="s-gmin" [required]="true" [control]="form.controls.gift_card_min">
+            <div class="input-group"><span class="addon">₹</span><input id="s-gmin" class="input" inputmode="decimal" formControlName="gift_card_min" /></div>
+          </app-field>
+          <app-field label="Maximum value (₹)" for="s-gmax" [required]="true" [control]="form.controls.gift_card_max">
+            <div class="input-group"><span class="addon">₹</span><input id="s-gmax" class="input" inputmode="decimal" formControlName="gift_card_max" /></div>
+          </app-field>
+          <app-field label="Validity (days)" for="s-gdays" [required]="true" [control]="form.controls.gift_card_validity_days" hint="30–1825 days.">
+            <input id="s-gdays" class="input" type="number" min="30" max="1825" formControlName="gift_card_validity_days" />
+          </app-field>
+        </div>
+      </section>
+
+      <section class="card" style="margin: 0">
+        <h2 class="section-title">Customer support</h2>
+        <div class="form-grid">
+          <app-field class="span-2" label="Support email" for="s-email" [required]="true" [control]="form.controls.support_email">
+            <input id="s-email" class="input" type="email" formControlName="support_email" maxlength="254" />
+          </app-field>
+          <app-field class="span-2" label="Support phone" for="s-phone" [required]="true" [control]="form.controls.support_phone" hint="10–15 digits, e.g. +919876543210.">
+            <input id="s-phone" class="input" type="tel" formControlName="support_phone" />
+          </app-field>
+        </div>
+      </section>
+    </div>
+
+    <div class="form-actions sticky-actions">
+      @if (updatedAt()) {
+        <span class="muted small" style="margin-right: auto; align-self: center">Last saved {{ updatedAt() | dt: true }}</span>
+      }
+      <button type="button" class="btn btn-ghost" [disabled]="saving() || form.pristine" (click)="load()">Discard changes</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save settings' }}</button>
+    </div>
+  </form>
+}

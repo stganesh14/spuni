@@ -1,0 +1,122 @@
+<app-state [loading]="loading() && !item()" [error]="item() ? null : error()" (retry)="load()" />
+
+@if (item(); as c) {
+  <app-page-header [title]="'Request ' + c.reference" eyebrow="Sales · Customizations" [subtitle]="(c.kind | humanize) + ' request · ' + (c.created_at | dt: true)">
+    <a routerLink="/customizations" class="btn btn-ghost">Back to requests</a>
+  </app-page-header>
+
+  <div class="status-strip"><app-status [value]="c.status" /></div>
+
+  <div class="grid-2">
+    <div class="stack">
+      <section class="card">
+        <h2>Request</h2>
+        <dl class="dl">
+          <dt>Type</dt>
+          <dd>{{ c.kind | humanize }}</dd>
+          @if (c.product_name) {
+            <dt>Product</dt>
+            <dd>
+              @if (c.product_id) {
+                <a [routerLink]="['/products', c.product_id]">{{ c.product_name }}</a>
+              } @else {
+                {{ c.product_name }}
+              }
+            </dd>
+          }
+          @if (c.personalization_text) {
+            <dt>Personalisation</dt>
+            <dd><strong>{{ c.personalization_text }}</strong></dd>
+          }
+          <dt>Budget</dt>
+          <dd>{{ c.budget_paise ? (c.budget_paise | money) : 'Not given' }}</dd>
+          <dt>Quote</dt>
+          <dd>{{ c.quoted_price_paise ? (c.quoted_price_paise | money) : 'Not quoted yet' }}</dd>
+          <dt>Last updated</dt>
+          <dd>{{ c.updated_at | dt: true }}</dd>
+        </dl>
+        <h3 style="margin-top: 16px">Details</h3>
+        <p style="white-space: pre-line; margin: 0">{{ c.details }}</p>
+      </section>
+
+      <section class="card">
+        <h2>Attachments</h2>
+        @if (c.files.length === 0) {
+          <p class="muted">No files attached.</p>
+        } @else {
+          <ul class="attachments">
+            @for (f of c.files; track f.url) {
+              <li>
+                @if (isImage(f.content_type)) {
+                  <a [href]="f.url | media" target="_blank" rel="noopener noreferrer" class="att-image">
+                    <img [src]="f.url | media" [alt]="f.original_name || 'Attached image'" loading="lazy" />
+                  </a>
+                } @else {
+                  <a [href]="f.url | media" target="_blank" rel="noopener noreferrer" class="att-file">
+                    <span class="att-icon" aria-hidden="true">PDF</span>
+                  </a>
+                }
+                <div class="small">
+                  <a [href]="f.url | media" target="_blank" rel="noopener noreferrer">{{ f.original_name || 'File' }}</a>
+                  <div class="muted">{{ f.content_type }} · {{ bytes(f.size_bytes) }}</div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Customer</h2>
+        <dl class="dl">
+          <dt>Name</dt>
+          <dd>{{ c.customer_name || '—' }}</dd>
+          <dt>Email</dt>
+          <dd><a [href]="'mailto:' + c.customer_email">{{ c.customer_email }}</a></dd>
+          @if (c.phone) {
+            <dt>Phone</dt>
+            <dd><a [href]="'tel:' + c.phone">{{ c.phone }}</a></dd>
+          }
+          <dt>Prefers</dt>
+          <dd>{{ c.preferred_contact | humanize }}{{ c.preferred_time ? ' · ' + c.preferred_time : '' }}</dd>
+          <dt>Account</dt>
+          <dd><a [routerLink]="['/customers', c.user_id]">View customer</a></dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Update</h2>
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="stack" style="gap: 14px">
+          @if (formError()) {
+            <p class="form-alert" role="alert">{{ formError() }}</p>
+          }
+          <app-field label="Status" for="cz-st" [control]="form.controls.status">
+            <select id="cz-st" class="select" formControlName="status">
+              @for (s of statuses; track s.value) {
+                <option [value]="s.value">{{ s.label }}</option>
+              }
+            </select>
+          </app-field>
+          <app-field label="Quoted price (₹)" for="cz-quote" [control]="form.controls.quote" hint="Required before marking as quoted.">
+            <div class="input-group">
+              <span class="addon">₹</span>
+              <input id="cz-quote" class="input" inputmode="decimal" formControlName="quote" />
+            </div>
+          </app-field>
+          <app-field label="Note to customer" for="cz-cnote" [control]="form.controls.customer_visible_note" hint="Shown to the customer and included in update emails.">
+            <textarea id="cz-cnote" class="textarea" rows="3" maxlength="1000" formControlName="customer_visible_note"></textarea>
+          </app-field>
+          <app-field label="Internal notes" for="cz-anote" [control]="form.controls.admin_notes" hint="Only visible to admins.">
+            <textarea id="cz-anote" class="textarea" rows="4" maxlength="4000" formControlName="admin_notes"></textarea>
+          </app-field>
+          <label class="check"><input type="checkbox" formControlName="notify_customer" /> Email the customer when the status changes</label>
+          <div>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save update' }}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+}

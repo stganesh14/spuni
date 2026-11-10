@@ -1,0 +1,110 @@
+@let o = order();
+<div class="ov">
+  <header class="ov-head">
+    <div>
+      <span class="eyebrow">{{ o.order_type === 'gift_card' ? 'E-gift card' : 'Order' }} · {{ o.created_at | date: 'd MMM y, h:mm a' }}</span>
+      <h2>{{ o.number }}</h2>
+    </div>
+    <span class="status-pill" [class]="'status-pill ' + tone()">{{ label(o.status) }}</span>
+  </header>
+
+  @if (o.order_type === 'product' && !ended() && o.status !== 'pending_payment') {
+    <ol class="track" [style.--progress]="stepIndex() / (steps.length - 1)">
+      @for (s of steps; track s; let i = $index) {
+        <li [class.done]="i <= stepIndex()" [class.now]="i === stepIndex()"><span class="dot"></span>{{ label(s) }}</li>
+      }
+    </ol>
+  }
+
+  @if (o.status === 'pending_payment') {
+    <div class="alert">
+      <p>Payment for this order hasn't been completed.
+        @if (o.expires_at) { It is held for you until {{ o.expires_at | date: 'h:mm a' }}. }</p>
+      <button type="button" class="btn btn-primary btn-sm" (click)="pay.emit()" [disabled]="busy()">Complete payment</button>
+    </div>
+  }
+
+  @if (o.tracking_number) {
+    <div class="ship panel">
+      <i class="bi bi-truck"></i>
+      <div><b>{{ o.courier || 'Courier' }} · {{ o.tracking_number }}</b>
+        @if (o.shipped_at) { <small>Shipped {{ o.shipped_at | date: 'd MMM' }}</small> }</div>
+      @if (o.tracking_url) {
+        <a class="btn btn-sm" [href]="o.tracking_url" target="_blank" rel="noopener noreferrer">Track parcel</a>
+      }
+    </div>
+  }
+
+  <div class="grid">
+    <section>
+      <h3>Items</h3>
+      <ul class="items">
+        @for (it of o.items; track it.id) {
+          <li>
+            <span class="thumb">@if (it.image_url) { <img [src]="it.image_url" [alt]="it.product_name" loading="lazy" /> }</span>
+            <span class="nm">
+              @if (it.product_slug) { <a [routerLink]="['/product', it.product_slug]">{{ it.product_name }}</a> }
+              @else { {{ it.product_name }} }
+              <small>{{ it.quantity }} × {{ it.unit_price_paise | inr }}</small>
+            </span>
+            <b>{{ it.line_total_paise | inr }}</b>
+          </li>
+        }
+      </ul>
+      <dl class="totals">
+        <dt>Subtotal</dt><dd>{{ o.subtotal_paise | inr }}</dd>
+        @if (o.order_type === 'product') { <dt>Shipping</dt><dd>{{ o.shipping_paise ? (o.shipping_paise | inr) : 'Free' }}</dd> }
+        @if (o.gift_wrap_paise) { <dt>Gift wrap</dt><dd>{{ o.gift_wrap_paise | inr }}</dd> }
+        @if (o.wallet_redeemed_paise) { <dt>SPUNI Wallet</dt><dd>−{{ o.wallet_redeemed_paise | inr }}</dd> }
+        <dt class="t">Total paid</dt><dd class="t">{{ o.total_paise | inr }}</dd>
+      </dl>
+      @if (o.wallet_earned_paise) {
+        <p class="earned"><i class="bi bi-wallet2"></i> {{ o.wallet_earned_paise | inr }} added to your SPUNI Wallet</p>
+      }
+    </section>
+
+    <section class="side">
+      @if (o.ship_name) {
+        <h3>Delivering to</h3>
+        <address>
+          <b>{{ o.ship_name }}</b><br />
+          {{ o.ship_line1 }}@if (o.ship_line2) {, {{ o.ship_line2 }}}<br />
+          @if (o.ship_landmark) { {{ o.ship_landmark }}<br /> }
+          {{ o.ship_city }}, {{ o.ship_state }} {{ o.ship_postal_code }}<br />
+          {{ o.ship_phone }}
+        </address>
+      }
+      @if (o.is_gift) {
+        <h3>Gift</h3>
+        <p class="gift">For <b>{{ o.gift_recipient_name }}</b>@if (o.gift_wrap) { · gift wrapped }
+          @if (o.gift_message) { <br /><em>“{{ o.gift_message }}”</em> }</p>
+      }
+      <h3>History</h3>
+      <ul class="events">
+        @for (e of eventsNewestFirst(); track $index) {
+          <li><b>{{ label(e.status) }}</b><small>{{ e.created_at | date: 'd MMM, h:mm a' }}</small>
+            @if (e.note) { <span>{{ e.note }}</span> }</li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  @if (o.can_cancel) {
+    <div class="cancel">
+      @if (!confirmCancel()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="confirmCancel.set(true)">Cancel this order</button>
+      } @else {
+        <div class="panel confirm">
+          <p><b>Cancel {{ o.number }}?</b> Payment is refunded to the original method and any wallet points used are returned.</p>
+          <label class="field"><span>Reason <span class="muted">(optional)</span></span>
+            <input class="input" [value]="cancelReason" (input)="cancelReason = $any($event.target).value" maxlength="300" /></label>
+          <div class="row">
+            <button type="button" class="btn btn-primary btn-sm" (click)="submitCancel()" [disabled]="busy()">
+              @if (busy()) { <span class="spin"></span> } Yes, cancel order</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="confirmCancel.set(false)">Keep it</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

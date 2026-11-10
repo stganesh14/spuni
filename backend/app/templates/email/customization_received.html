@@ -1,0 +1,8 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import button %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">Customization request {{ reference }}</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">We have your idea{% if name %}, {{ name }}{% endif %}.</h1>
+<p>Thank you for trusting us with your vision. A SPUNI craftsperson will review your {{ kind_label }} and get back to you {% if preferred_contact == "email" %}by email{% else %}on {{ phone }}{% endif %} within 2 working days.</p>
+{{ button(storefront_url ~ "/account/customizations", "Track your request") }}
+{% endblock %}

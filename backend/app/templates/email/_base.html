@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }}</title>
+</head>
+<body style="margin:0;padding:0;background:#eee3d2;font-family:Georgia,'Times New Roman',serif;color:#332016;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eee3d2;padding:32px 12px;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fbf6ee;border:1px solid #c8b8a0;">
+<tr><td style="background:#332016;padding:28px 32px;text-align:center;">
+<div style="font-size:26px;letter-spacing:10px;color:#eee3d2;">{{ brand }}</div>
+<div style="font-size:10px;letter-spacing:4px;color:#9a7853;margin-top:6px;">THINK LEATHER &middot; THINK SPUNI</div>
+</td></tr>
+<tr><td style="padding:36px 32px 12px 32px;font-size:15px;line-height:1.7;">
+{% block content %}{% endblock %}
+</td></tr>
+<tr><td style="padding:12px 32px 32px 32px;">
+<div style="border-top:1px solid #c8b8a0;padding-top:18px;font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#7a6250;line-height:1.6;text-align:center;">
+Questions? Reply to this email or write to <a href="mailto:{{ support_email }}" style="color:#641f1f;">{{ support_email }}</a>.<br>
+&copy; {{ year }} SPUNI LEATHERS &middot; 45, Kattur Sadayappan Street, Periamet, Chennai 600003
+{% block footer_extra %}{% endblock %}
+</div>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

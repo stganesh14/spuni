@@ -1,0 +1,8 @@
+{% extends "_base.html" %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">A gift is on its way</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">Dear {{ recipient_name }},</h1>
+<p><strong>{{ sender_name }}</strong> has sent you something handcrafted from SPUNI. It left our atelier today{% if courier %} with {{ courier }}{% endif %}.</p>
+{% if message %}<p style="margin:22px 0;padding:18px 20px;background:#eee3d2;border-left:3px solid #641f1f;font-style:italic;">“{{ message }}”</p>{% endif %}
+<p>We have kept the contents a surprise.</p>
+{% endblock %}

@@ -1,0 +1,63 @@
+<section class="hero" [class.ready]="ready()" aria-roledescription="carousel" aria-label="Featured collections"
+         (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
+  <div class="slides">
+    <div class="drift" appParallax="16" [parallaxScale]="1.06">
+      @for (b of banners(); track b.id; let i = $index) {
+        <figure class="slide" [class.on]="i === current()" [attr.aria-hidden]="i !== current()">
+          <img [src]="b.image_url" [alt]="b.alt || b.title_one" [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+               [attr.fetchpriority]="i === 0 ? 'high' : null" decoding="async" draggable="false" />
+        </figure>
+      }
+    </div>
+    <div class="shade" aria-hidden="true"></div>
+  </div>
+
+  <div class="content container">
+    <p class="kicker"><span class="pulse"></span> New season · Handcrafted in Chennai</p>
+
+    @if (slide(); as s) {
+      @for (key of [current()]; track key) {
+        <h1 class="title">
+          <span class="line">
+            @for (c of titleOne(); track $index) {
+              <span class="ch" [style.--i]="$index">{{ c === ' ' ? ' ' : c }}</span>
+            }
+          </span>
+          @if (titleTwo().length) {
+            <span class="line accent">
+              @for (c of titleTwo(); track $index) {
+                <span class="ch" [style.--i]="$index + titleOne().length">{{ c === ' ' ? ' ' : c }}</span>
+              }
+            </span>
+          }
+        </h1>
+      }
+    } @else {
+      <h1 class="title"><span class="line">Made for</span><span class="line accent">everyday rituals.</span></h1>
+    }
+
+    <div class="ctas">
+      <a class="btn btn-light" [routerLink]="slide()?.link_url || '/shop'" appMagnetic="0.25">
+        Shop the collection <i class="bi bi-arrow-up-right"></i>
+      </a>
+      <a class="btn btn-ghost on-dark" routerLink="/whats-new">See what's dropping</a>
+    </div>
+  </div>
+
+  @if (banners().length > 1) {
+    <div class="dots" role="tablist" aria-label="Choose slide">
+      @for (b of banners(); track b.id; let i = $index) {
+        <button type="button" role="tab" [attr.aria-selected]="i === current()" [attr.aria-label]="'Slide ' + (i + 1)"
+                [class.on]="i === current()" (click)="go(i)">
+          <span class="num">{{ (i + 1).toString().padStart(2, '0') }}</span>
+          <span class="track"><span class="fill" [style.animation-duration.ms]="slideMs"
+                                    [class.run]="i === current() && playing()"></span></span>
+        </button>
+      }
+    </div>
+  }
+
+  <button type="button" class="scroll-cue" (click)="scrollDown()" aria-label="Scroll to explore">
+    <span>Scroll</span><i></i>
+  </button>
+</section>

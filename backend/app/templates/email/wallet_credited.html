@@ -1,0 +1,9 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import button %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">SPUNI Wallet</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">{{ amount_paise | rupees }} added to your wallet.</h1>
+<p>{{ reason }}</p>
+<p>Your balance is now <strong>{{ balance_paise | rupees }}</strong>.</p>
+{{ button(storefront_url ~ "/account/wallet", "Open wallet") }}
+{% endblock %}

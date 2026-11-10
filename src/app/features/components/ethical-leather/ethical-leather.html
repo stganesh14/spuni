@@ -1,0 +1,195 @@
+<section class="ethical-leather">
+
+  <!-- =========================
+       MAIN STORY
+  ========================== -->
+  <section class="main-story">
+
+    <div class="story-content">
+
+      <span class="story-label">
+        THE SPUNI APPROACH
+      </span>
+
+      <h2 class="story-title">
+        Leather,
+        <span>reimagined.</span>
+      </h2>
+
+      <p class="story-copy">
+        We believe beautiful leather should not come at the cost of
+        responsibility. Our approach brings together thoughtful sourcing,
+        careful refinement and skilled craftsmanship to create pieces that
+        are made to last.
+      </p>
+
+      <a class="story-button" routerLink="/about">
+        Discover our process
+        <span class="button-arrow">→</span>
+      </a>
+
+    </div>
+
+    <!-- Craft Image -->
+    <div class="craft-image-container">
+
+      <img
+        class="craft-image"
+        src="/assets/crafted.jpeg"
+        alt="SPUNI leather craftsmanship"
+        loading="lazy"
+      />
+
+      <div class="craft-image-overlay"></div>
+
+      <div class="craft-image-text">
+        <span>CRAFTED WITH PURPOSE</span>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       PROCESS
+  ========================== -->
+  <section class="process-section">
+
+    <div class="process-heading">
+
+      <span class="process-label">
+        OUR PROCESS
+      </span>
+
+      <h2>
+        From source
+        <span>to story.</span>
+      </h2>
+
+    </div>
+
+
+    <div class="process-grid">
+
+      @for (item of processItems; track item.number) {
+
+        <article class="process-card">
+
+          <div class="process-image-wrapper">
+
+            <img
+              class="process-image"
+              [src]="item.image"
+              [alt]="item.title"
+              loading="lazy"
+            />
+
+          </div>
+
+          <div class="process-number">
+            {{ item.number }}
+          </div>
+
+          <h3>
+            {{ item.title }}
+          </h3>
+
+          <p>
+            {{ item.description }}
+          </p>
+
+        </article>
+
+      }
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       BOTTOM MATERIAL
+  ========================== -->
+  <section class="bottom-material">
+
+    <div class="bottom-material-image">
+
+      <img
+        src="/assets/source.jpeg"
+        alt="Responsible leather sourcing"
+        loading="lazy"
+        data-parallax
+      />
+
+      <div class="bottom-material-overlay"></div>
+
+    </div>
+
+
+    <div class="bottom-material-content">
+
+      <span class="bottom-material-badge">
+        RESPONSIBLE BY DESIGN
+      </span>
+
+      <h2>
+        Better materials.
+        <span>Better choices.</span>
+      </h2>
+
+      <p>
+        Every detail is considered with purpose — from where our materials
+        come from to how every finished piece reaches you.
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================
+       FINAL MESSAGE
+  ========================== -->
+  <section class="final-message">
+
+    <div class="final-message-inner">
+
+      <figure class="final-message-image">
+        <img
+          src="/assets/leather-rolls.jpeg"
+          alt="Rolls of reclaimed hides waiting to be crafted in the SPUNI studio"
+          loading="lazy"
+        />
+        <figcaption>Rescued hides, ready for a second life</figcaption>
+      </figure>
+
+      <div class="final-message-copy">
+
+        <span class="story-label">OUR LEATHER PROMISE</span>
+
+        <h2>
+          No animal is harmed
+          <span>for our leather.</span>
+        </h2>
+
+        <p>
+          Every SPUNI hide is a by-product of the food industry: skins that would
+          otherwise be thrown away. We rescue them, tan them responsibly and craft
+          them into pieces made to last for decades. Nothing is killed for beauty.
+          Nothing is wasted.
+        </p>
+
+        <ul class="final-message-facts">
+          <li><b>100%</b><span>by-product hides</span></li>
+          <li><b>0</b><span>animals raised for leather</span></li>
+          <li><b>Decades</b><span>of everyday wear</span></li>
+        </ul>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</section>

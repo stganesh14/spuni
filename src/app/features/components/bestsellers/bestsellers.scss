@@ -1,0 +1,136 @@
+@use 'mixins' as *;
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.bs {
+  padding: clamp(70px, 9vw, 130px) 0;
+  background: var(--paper);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+
+  .title { margin: 12px 0 0; max-width: 14ch; }
+}
+
+.nav {
+  display: none;
+  gap: 10px;
+
+  @include up($bp-md) { display: flex; }
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+
+  &::-webkit-scrollbar { display: none; }
+
+  .chip {
+    flex: none;
+    cursor: pointer;
+
+    &.on {
+      background: var(--brown);
+      color: var(--cream);
+      border-color: var(--brown);
+    }
+  }
+}
+
+.rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(230px, 72vw, 330px);
+  gap: clamp(14px, 2vw, 26px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  padding: 34px var(--gutter) 20px;
+  scrollbar-width: none;
+  cursor: grab;
+
+  &::-webkit-scrollbar { display: none; }
+
+  &.dragging {
+    cursor: grabbing;
+    scroll-snap-type: none;
+    user-select: none;
+  }
+
+  @include up($bp-lg) { grid-auto-columns: calc((min(1440px, 100vw - 2 * var(--gutter)) - 3 * 26px) / 4); }
+}
+
+.slot {
+  scroll-snap-align: start;
+  animation: rise 0.8s var(--ease-out) both calc(var(--i, 0) * 60ms);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(30px); }
+}
+
+.sk {
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-lg);
+}
+
+.end {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  min-height: 300px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--line-strong);
+  color: var(--ink);
+  text-decoration: none;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.1;
+  transition: background 0.4s, color 0.4s;
+
+  em { color: var(--burgundy); }
+
+  i {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: var(--brown);
+    color: var(--cream);
+
+    em { color: var(--gold-light); }
+  }
+}
+
+.bar {
+  height: 2px;
+  background: var(--line);
+  margin-top: 10px;
+
+  span {
+    display: block;
+    height: 100%;
+    background: var(--burgundy);
+    transform-origin: left;
+    transition: transform 0.2s;
+  }
+}

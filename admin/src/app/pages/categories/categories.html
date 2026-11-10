@@ -1,0 +1,108 @@
+<app-page-header title="Categories" eyebrow="Catalogue" subtitle="Collections shown in the store menu and on category pages.">
+  <button type="button" class="btn btn-primary" (click)="open('new')">+ New category</button>
+</app-page-header>
+
+<section class="card card-flush">
+  <app-state
+    [loading]="loading() && !items()"
+    [error]="error()"
+    [empty]="!!items() && items()!.length === 0"
+    emptyTitle="No categories yet"
+    (retry)="load()"
+  />
+  @if (items(); as list) {
+    @if (list.length && !error()) {
+      <div class="table-wrap">
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col">Slug</th>
+              <th scope="col" class="num">Products</th>
+              <th scope="col" class="num">Order</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="actions"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of list; track c.id) {
+              <tr>
+                <td class="primary-cell" data-label="">
+                  <div class="cell-main">
+                    @if (c.image_url) {
+                      <img class="thumb" [src]="c.image_url | media" alt="" loading="lazy" />
+                    } @else {
+                      <span class="thumb" aria-hidden="true"></span>
+                    }
+                    <div>
+                      <strong>{{ c.name }}</strong>
+                      <span class="muted small">{{ c.tagline }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Slug" class="mono">{{ c.slug }}</td>
+                <td class="num" data-label="Products">
+                  <a [routerLink]="'/products'" [queryParams]="{ category: c.id }">{{ c.product_count }}</a>
+                </td>
+                <td class="num" data-label="Sort order">{{ c.sort_order }}</td>
+                <td data-label="Status">
+                  <app-status [value]="c.is_active ? 'active' : 'inactive'" />
+                  @if (!c.show_in_menu) {
+                    <span class="badge">Not in menu</span>
+                  }
+                </td>
+                <td class="actions" data-label="">
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="open(c)">Edit</button>
+                  <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="remove(c)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>
+
+<app-modal [open]="!!editing()" [title]="title()" [wide]="true" (closed)="editing.set(null)">
+  @if (editing()) {
+    <form id="category-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <p class="form-alert" role="alert">{{ formError() }}</p>
+      }
+      <div class="form-grid">
+        <app-field label="Name" for="c-name" [required]="true" [control]="form.controls.name">
+          <input id="c-name" class="input" formControlName="name" maxlength="80" />
+        </app-field>
+        <app-field label="Slug" for="c-slug" [required]="true" [control]="form.controls.slug">
+          <input id="c-slug" class="input mono" formControlName="slug" maxlength="140" (input)="onSlugInput()" />
+        </app-field>
+        <app-field class="span-2" label="Tagline" for="c-tagline" [control]="form.controls.tagline">
+          <input id="c-tagline" class="input" formControlName="tagline" maxlength="160" />
+        </app-field>
+        <app-field class="span-2" label="Description" for="c-desc" [control]="form.controls.description">
+          <textarea id="c-desc" class="textarea" rows="4" formControlName="description" maxlength="4000"></textarea>
+        </app-field>
+        <app-field label="Card image" for="c-image">
+          <app-image-upload id="c-image" folder="categories" formControlName="image_url" />
+        </app-field>
+        <app-field label="Page banner" for="c-banner">
+          <app-image-upload id="c-banner" folder="categories" aspect="wide" formControlName="banner_url" />
+        </app-field>
+        <app-field label="Sort order" for="c-sort" [control]="form.controls.sort_order">
+          <input id="c-sort" class="input" type="number" min="0" max="10000" formControlName="sort_order" />
+        </app-field>
+        <div class="switch-row" style="align-self: end; padding-bottom: 8px">
+          <label class="check"><input type="checkbox" formControlName="is_active" /> Active</label>
+          <label class="check"><input type="checkbox" formControlName="show_in_menu" /> Show in menu</label>
+        </div>
+      </div>
+    </form>
+  }
+  <div modal-actions>
+    <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="category-form" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save category' }}
+    </button>
+  </div>
+</app-modal>

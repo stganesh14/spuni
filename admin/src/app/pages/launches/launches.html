@@ -1,0 +1,224 @@
+<app-page-header
+  title="What's new"
+  eyebrow="Catalogue · Launches"
+  subtitle="Upcoming collections. Shoppers can subscribe to be emailed when a launch goes live."
+>
+  <button type="button" class="btn btn-primary" (click)="open('new')">+ New launch</button>
+</app-page-header>
+
+<app-state
+  [loading]="loading() && !items()"
+  [error]="error()"
+  [empty]="!!items() && items()!.length === 0"
+  emptyTitle="No launches yet"
+  emptyText="Create a launch to start collecting subscribers."
+  (retry)="load()"
+/>
+
+@if (items(); as list) {
+  @if (list.length && !error()) {
+    <div class="launch-grid">
+      @for (l of list; track l.id) {
+        <article class="card launch">
+          <div class="launch-media">
+            @if (l.image_url) {
+              <img [src]="l.image_url | media" alt="" loading="lazy" />
+            }
+            <app-status [value]="l.status" />
+          </div>
+          <div class="launch-body">
+            <h2>{{ l.title }}</h2>
+            @if (l.tagline) {
+              <p class="muted">{{ l.tagline }}</p>
+            }
+            <dl class="dl small">
+              <dt>Launch date</dt>
+              <dd>{{ l.launch_at ? (l.launch_at | dt: true) : 'Not set' }}</dd>
+              @if (l.category_id) {
+                <dt>Category</dt>
+                <dd>{{ categoryName(l.category_id) }}</dd>
+              }
+              @if (l.product_id) {
+                <dt>Product</dt>
+                <dd>{{ productName(l.product_id) }}</dd>
+              }
+              <dt>Last notified</dt>
+              <dd>{{ l.notified_at ? (l.notified_at | dt: true) + ' (' + l.notify_count + ' sent)' : 'Never' }}</dd>
+            </dl>
+            <div class="subs-stats">
+              <button type="button" class="stat" (click)="openSubs(l)" [attr.aria-label]="'View ' + l.subscriber_count + ' subscribers'">
+                <strong>{{ l.subscriber_count }}</strong>
+                <span>subscribers</span>
+              </button>
+              <div class="stat" [class.pending]="l.pending_count > 0">
+                <strong>{{ l.pending_count }}</strong>
+                <span>waiting</span>
+              </div>
+            </div>
+          </div>
+          <footer class="launch-actions">
+            <button type="button" class="btn btn-gold" (click)="openNotify(l)">
+              ✉ Notify subscribers
+              @if (l.pending_count) {
+                <span class="count-pill">{{ l.pending_count }}</span>
+              }
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="open(l)">Edit</button>
+            <button type="button" class="btn btn-ghost btn-sm" (click)="openSubs(l)">Subscribers</button>
+            <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="remove(l)">Delete</button>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+}
+
+<!-- edit -->
+<app-modal [open]="!!editing()" [title]="editTitle()" [wide]="true" (closed)="editing.set(null)">
+  @if (editing()) {
+    <form id="launch-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <p class="form-alert" role="alert">{{ formError() }}</p>
+      }
+      <div class="form-grid">
+        <app-field label="Title" for="l-title" [required]="true" [control]="form.controls.title">
+          <input id="l-title" class="input" formControlName="title" maxlength="120" />
+        </app-field>
+        <app-field label="Slug" for="l-slug" [required]="true" [control]="form.controls.slug">
+          <input id="l-slug" class="input mono" formControlName="slug" maxlength="140" (input)="onSlugInput()" />
+        </app-field>
+        <app-field class="span-2" label="Tagline" for="l-tagline" [control]="form.controls.tagline">
+          <input id="l-tagline" class="input" formControlName="tagline" maxlength="160" />
+        </app-field>
+        <app-field class="span-2" label="Description" for="l-desc" [control]="form.controls.description">
+          <textarea id="l-desc" class="textarea" rows="4" formControlName="description" maxlength="4000"></textarea>
+        </app-field>
+        <app-field label="Status" for="l-status" [control]="form.controls.status">
+          <select id="l-status" class="select" formControlName="status">
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ s.charAt(0).toUpperCase() + s.slice(1) }}</option>
+            }
+          </select>
+        </app-field>
+        <app-field label="Launch date &amp; time" for="l-at" hint="Your local time.">
+          <input id="l-at" class="input" type="datetime-local" formControlName="launch_at" />
+        </app-field>
+        <app-field label="Linked category" for="l-cat">
+          <select id="l-cat" class="select" formControlName="category_id">
+            <option [ngValue]="null">None</option>
+            @for (c of categories(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </app-field>
+        <app-field label="Linked product" for="l-prod">
+          <select id="l-prod" class="select" formControlName="product_id">
+            <option [ngValue]="null">None</option>
+            @for (p of products(); track p.id) {
+              <option [ngValue]="p.id">{{ p.name }}</option>
+            }
+          </select>
+        </app-field>
+        <app-field label="Image" for="l-image">
+          <app-image-upload id="l-image" folder="launches" aspect="wide" formControlName="image_url" />
+        </app-field>
+        <app-field label="Sort order" for="l-sort" [control]="form.controls.sort_order">
+          <input id="l-sort" class="input" type="number" min="0" max="10000" formControlName="sort_order" />
+        </app-field>
+      </div>
+    </form>
+  }
+  <div modal-actions>
+    <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="launch-form" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save launch' }}
+    </button>
+  </div>
+</app-modal>
+
+<!-- subscribers -->
+<app-modal [open]="!!subsFor()" [title]="'Subscribers · ' + (subsFor()?.title ?? '')" [wide]="true" (closed)="subsFor.set(null)">
+  @if (subsError()) {
+    <p class="form-alert" role="alert">{{ subsError() }}</p>
+  } @else if (!subs()) {
+    <app-state [loading]="true" />
+  } @else if (subs()!.length === 0) {
+    <app-state [empty]="true" emptyTitle="No subscribers yet" emptyText="Shoppers can subscribe from the What's new page." />
+  } @else {
+    <p class="muted small">
+      {{ subsSummary().total }} sign-up(s) · {{ subsSummary().active }} active · {{ subsSummary().notified }} already notified
+    </p>
+    <div class="table-wrap">
+      <table class="table responsive">
+        <thead>
+          <tr>
+            <th scope="col">Email</th>
+            <th scope="col">Subscribed</th>
+            <th scope="col">Notified</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of subs(); track s.email) {
+            <tr>
+              <td class="primary-cell" data-label="">{{ s.email }}</td>
+              <td data-label="Subscribed">{{ s.created_at | dt: true }}</td>
+              <td data-label="Notified">{{ s.notified_at ? (s.notified_at | dt: true) : '—' }}</td>
+              <td data-label="Status">
+                @if (s.unsubscribed_at) {
+                  <app-status value="cancelled" text="Unsubscribed" />
+                } @else if (s.notified_at) {
+                  <app-status value="sent" text="Notified" />
+                } @else {
+                  <app-status value="pending" text="Waiting" />
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div modal-actions>
+    <button type="button" class="btn btn-ghost" (click)="subsFor.set(null)">Close</button>
+  </div>
+</app-modal>
+
+<!-- notify -->
+<app-modal [open]="!!notifyFor()" [title]="'Notify subscribers · ' + (notifyFor()?.title ?? '')" (closed)="notifyFor.set(null)">
+  @if (notifyFor(); as l) {
+    @if (notifyResult()) {
+      <p class="callout" role="status">{{ notifyResult() }}</p>
+    } @else {
+      @if (l.pending_count > 0) {
+        <p class="callout">
+          <strong>{{ l.pending_count }}</strong> subscriber{{ l.pending_count === 1 ? '' : 's' }} will be emailed that
+          “{{ l.title }}” is live. People who were already notified or unsubscribed are skipped.
+        </p>
+      } @else {
+        <p class="callout callout-warn">
+          Nobody is waiting: everyone subscribed has already been notified, so no emails will be sent.
+        </p>
+      }
+      <form id="notify-form" (submit)="$event.preventDefault(); sendNotify()" class="stack" style="gap: 14px; margin-top: 14px">
+        <app-field label="Custom message (optional)" for="n-msg" [control]="notifyMessage" hint="Added to the email. Up to 500 characters.">
+          <textarea id="n-msg" class="textarea" rows="4" maxlength="500" [formControl]="notifyMessage"></textarea>
+        </app-field>
+        <label class="check">
+          <input type="checkbox" [formControl]="markLaunched" />
+          Mark this launch as “launched” (a future launch date is moved to now)
+        </label>
+      </form>
+    }
+  }
+  <div modal-actions>
+    @if (notifyResult()) {
+      <button type="button" class="btn btn-primary" (click)="notifyFor.set(null)">Done</button>
+    } @else {
+      <button type="button" class="btn btn-ghost" (click)="notifyFor.set(null)">Cancel</button>
+      <button type="submit" form="notify-form" class="btn btn-primary" [disabled]="notifying()">
+        {{ notifying() ? 'Sending…' : 'Send ' + (notifyFor()?.pending_count ?? 0) + ' email(s)' }}
+      </button>
+    }
+  </div>
+</app-modal>

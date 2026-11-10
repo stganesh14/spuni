@@ -1,0 +1,240 @@
+@use 'mixins' as *;
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.footer {
+  position: relative;
+  overflow: hidden;
+  background: var(--brown);
+  color: var(--cream);
+  padding-top: clamp(56px, 8vw, 100px);
+}
+
+.stitch {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(201, 166, 107, 0.6) 0 12px, transparent 12px 20px);
+}
+
+.top {
+  display: grid;
+  gap: 40px 28px;
+  grid-template-columns: 1fr 1fr;
+
+  @include up($bp-md) { grid-template-columns: 1.6fr repeat(3, 1fr); }
+}
+
+.brand-col {
+  grid-column: 1 / -1;
+
+  @include up($bp-md) { grid-column: auto; }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+
+  img {
+    filter: invert(0.92) sepia(0.3);
+  }
+
+  span {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    letter-spacing: 0.3em;
+  }
+}
+
+.tag {
+  max-width: 34ch;
+  margin: 18px 0 22px;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: rgba(238, 227, 210, 0.8);
+
+  em {
+    display: block;
+    margin-top: 6px;
+    color: var(--gold-light);
+  }
+}
+
+.contact {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  display: grid;
+  gap: 10px;
+  font-size: 0.86rem;
+
+  li {
+    display: flex;
+    gap: 12px;
+    color: rgba(238, 227, 210, 0.78);
+  }
+
+  i { color: var(--gold-light); }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover { color: var(--cream); text-decoration: underline; }
+  }
+}
+
+.social {
+  display: flex;
+  gap: 10px;
+
+  a {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid rgba(238, 227, 210, 0.3);
+    color: var(--cream);
+    transition: background 0.3s, color 0.3s, transform 0.4s var(--ease-out);
+
+    &:hover {
+      background: var(--cream);
+      color: var(--brown);
+      transform: translateY(-3px) rotate(-8deg);
+    }
+  }
+}
+
+.col {
+  h3 {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin: 0 0 16px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.25rem;
+
+    span {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--gold-light);
+    }
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 9px;
+  }
+
+  li a {
+    position: relative;
+    color: rgba(238, 227, 210, 0.75);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.25s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      width: 100%;
+      height: 1px;
+      background: var(--gold-light);
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.4s var(--ease-out);
+    }
+
+    &:hover {
+      color: var(--cream);
+
+      &::after { transform: scaleX(1); transform-origin: left; }
+    }
+  }
+}
+
+.word {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: clamp(40px, 7vw, 90px);
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 24vw, 22rem);
+  line-height: 0.78;
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(201, 166, 107, 0.45);
+  user-select: none;
+
+  span {
+    display: inline-block;
+    transition: color 0.6s, -webkit-text-stroke-color 0.6s;
+
+    &:hover { color: var(--burgundy-bright); -webkit-text-stroke-color: transparent; }
+  }
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 26px;
+  padding: 22px 0 28px;
+  border-top: 1px solid rgba(238, 227, 210, 0.16);
+  font-size: 0.78rem;
+  color: rgba(238, 227, 210, 0.65);
+
+  p { margin: 0; }
+}
+
+.legal {
+  display: flex;
+  gap: 18px;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover { color: var(--cream); }
+  }
+}
+
+.pay {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+
+  @include up($bp-md) { margin-left: auto; }
+}
+
+.up {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(238, 227, 210, 0.35);
+  background: transparent;
+  color: var(--cream);
+  cursor: pointer;
+  transition: transform 0.4s var(--ease-out), background 0.3s;
+  @include focus-ring;
+
+  &:hover {
+    background: var(--burgundy);
+    transform: translateY(-4px);
+  }
+}

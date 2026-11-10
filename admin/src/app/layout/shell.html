@@ -1,0 +1,67 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="shell" [class.nav-open]="navOpen()">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <div>
+        <span class="brand-name">SPUNI</span>
+        <span class="brand-sub">Atelier admin</span>
+      </div>
+    </div>
+    <nav>
+      @for (g of groups; track g.title) {
+        <p class="nav-group">{{ g.title }}</p>
+        <ul>
+          @for (item of g.items; track item.path) {
+            <li>
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                #rla="routerLinkActive"
+                [attr.aria-current]="rla.isActive ? 'page' : null"
+              >
+                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+                {{ item.label }}
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </nav>
+    <p class="sidebar-foot">Vegan leather · handcrafted</p>
+  </aside>
+  <button
+    type="button"
+    class="scrim"
+    aria-label="Close navigation"
+    tabindex="-1"
+    (click)="navOpen.set(false)"
+  ></button>
+
+  <div class="main-col">
+    <header class="topbar">
+      <button
+        type="button"
+        class="icon-btn menu-btn"
+        aria-controls="sidebar"
+        [attr.aria-expanded]="navOpen()"
+        aria-label="Toggle navigation"
+        (click)="navOpen.set(!navOpen())"
+      >
+        ☰
+      </button>
+      <span class="topbar-title">SPUNI Admin</span>
+      <div class="topbar-user">
+        <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="user-email" [title]="auth.user()?.email ?? ''">{{ auth.user()?.email }}</span>
+        <button type="button" class="btn btn-ghost btn-sm" [disabled]="signingOut()" (click)="logout()">
+          {{ signingOut() ? 'Signing out…' : 'Log out' }}
+        </button>
+      </div>
+    </header>
+    <main id="main" class="content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

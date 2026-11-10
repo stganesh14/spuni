@@ -1,0 +1,306 @@
+<app-state [loading]="loading() && !order()" [error]="order() ? null : error()" (retry)="load()" />
+
+@if (order(); as o) {
+  <app-page-header [title]="'Order ' + o.number" eyebrow="Sales · Orders" [subtitle]="'Placed ' + (o.created_at | dt: true)">
+    <a routerLink="/orders" class="btn btn-ghost">Back to orders</a>
+  </app-page-header>
+
+  <div class="status-strip">
+    <app-status [value]="o.status" />
+    <app-status [value]="o.payment_status" [text]="'Payment ' + (o.payment_status | humanize).toLowerCase()" />
+    <span class="badge">{{ o.order_type === 'gift_card' ? 'Gift card order' : 'Product order' }}</span>
+    @if (o.is_gift) {
+      <span class="badge" data-tone="gold">Gift</span>
+    }
+  </div>
+
+  <section class="card status-card" id="update-status">
+    <h2>Update status</h2>
+    @if (o.allowed_transitions.length === 0) {
+      <p class="muted">This order is {{ (o.status | humanize).toLowerCase() }}; no further status changes are possible.</p>
+    } @else {
+      <form [formGroup]="statusForm" (ngSubmit)="updateStatus()" novalidate class="stack" style="gap: 14px">
+        <div class="transition-list" role="radiogroup" aria-label="New status">
+          @for (s of transitions(o); track s) {
+            <label class="transition" [class.selected]="chosen() === s" [class.danger]="s === 'cancelled' || s === 'refunded'">
+              <input type="radio" name="status" [value]="s" [checked]="chosen() === s" (change)="choose(s)" />
+              <span>{{ label(s) }}</span>
+            </label>
+          }
+        </div>
+
+        @if (chosen() === 'shipped' || chosen() === 'out_for_delivery') {
+          <app-field label="Courier" for="o-courier" [required]="chosen() === 'shipped'" [control]="statusForm.controls.courier">
+            <input id="o-courier" class="input" formControlName="courier" maxlength="60" placeholder="e.g. Delhivery" />
+          </app-field>
+          <app-field label="Tracking number" for="o-track" [required]="chosen() === 'shipped'" [control]="statusForm.controls.tracking_number">
+            <input id="o-track" class="input mono" formControlName="tracking_number" maxlength="60" />
+          </app-field>
+          <app-field label="Tracking URL" for="o-turl" [control]="statusForm.controls.tracking_url" hint="Optional https:// link.">
+            <input id="o-turl" class="input" type="url" formControlName="tracking_url" maxlength="300" placeholder="https://" />
+          </app-field>
+        }
+
+        @if (chosen()) {
+          @if (isDestructive()) {
+            <p class="callout callout-danger small">
+              {{ chosen() === 'cancelled' ? 'Cancelling' : 'Refunding' }} this order will refund the payment
+              @if (o.payment_status === 'paid') {
+                of <strong>{{ o.total_paise | money }}</strong>
+              }
+              and reverse wallet points. You'll be asked to confirm.
+            </p>
+          }
+          <app-field label="Note (optional)" for="o-note" [control]="statusForm.controls.note" hint="Saved in the timeline and included in the customer email.">
+            <textarea id="o-note" class="textarea" rows="3" maxlength="500" formControlName="note"></textarea>
+          </app-field>
+          <label class="check"><input type="checkbox" formControlName="notify_customer" /> Email the customer about this update</label>
+          @if (statusError()) {
+            <p class="form-alert" role="alert">{{ statusError() }}</p>
+          }
+          <button type="submit" class="btn" [class.btn-danger]="isDestructive()" [class.btn-primary]="!isDestructive()" [disabled]="updating()">
+            {{ updating() ? 'Updating…' : label(chosen()!) }}
+          </button>
+        } @else {
+          <p class="muted small">Choose the next status for this order.</p>
+        }
+      </form>
+    }
+  </section>
+
+  <div class="grid-2">
+    <div class="stack">
+      <section class="card card-flush">
+        <div class="card-header" style="padding: 18px 20px 0">
+          <h2>Items</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table responsive">
+            <thead>
+              <tr>
+                <th scope="col">Item</th>
+                <th scope="col" class="num">Price</th>
+                <th scope="col" class="num">Qty</th>
+                <th scope="col" class="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (i of o.items; track i.id) {
+                <tr>
+                  <td class="primary-cell" data-label="">
+                    <div class="cell-main">
+                      @if (i.image_url) {
+                        <img class="thumb" [src]="i.image_url | media" alt="" />
+                      } @else {
+                        <span class="thumb" aria-hidden="true"></span>
+                      }
+                      <div>
+                        @if (i.product_id) {
+                          <a class="row-link" [routerLink]="['/products', i.product_id]">{{ i.product_name }}</a>
+                        } @else {
+                          <strong>{{ i.product_name }}</strong>
+                        }
+                        @if (i.sku) {
+                          <span class="muted small mono">{{ i.sku }}</span>
+                        }
+                      </div>
+                    </div>
+                  </td>
+                  <td class="num" data-label="Price">{{ i.unit_price_paise | money }}</td>
+                  <td class="num" data-label="Qty">{{ i.quantity }}</td>
+                  <td class="num" data-label="Total">{{ i.line_total_paise | money }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div style="padding: 14px 20px 18px; border-top: 1px solid var(--line)">
+          <table class="totals" aria-label="Order totals">
+            <tbody>
+              <tr><td>Subtotal</td><td>{{ o.subtotal_paise | money }}</td></tr>
+              <tr><td>Shipping</td><td>{{ o.shipping_paise ? (o.shipping_paise | money) : 'Free' }}</td></tr>
+              @if (o.gift_wrap_paise) {
+                <tr><td>Gift wrap</td><td>{{ o.gift_wrap_paise | money }}</td></tr>
+              }
+              @if (o.wallet_redeemed_paise) {
+                <tr><td>Wallet redeemed</td><td class="danger-text">−{{ o.wallet_redeemed_paise | money }}</td></tr>
+              }
+              <tr class="grand"><td>Total</td><td>{{ o.total_paise | money }}</td></tr>
+              @if (o.wallet_earned_paise) {
+                <tr><td class="muted">Wallet points earned</td><td class="ok-text">+{{ o.wallet_earned_paise | money }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Payments</h2>
+        @if (o.payments.length === 0) {
+          <p class="muted">No payment attempts yet.</p>
+        } @else {
+          <div class="table-wrap">
+            <table class="table responsive">
+              <thead>
+                <tr>
+                  <th scope="col">Provider</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Method</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="num">Amount</th>
+                  <th scope="col">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of o.payments; track $index) {
+                  <tr>
+                    <td class="primary-cell" data-label="">{{ p.provider | humanize }}</td>
+                    <td data-label="Reference" class="mono small">
+                      {{ p.provider_order_id }}
+                      @if (p.provider_payment_id) {
+                        <div class="muted">{{ p.provider_payment_id }}</div>
+                      }
+                    </td>
+                    <td data-label="Method">{{ p.method ? (p.method | humanize) : '—' }}</td>
+                    <td data-label="Status">
+                      <app-status [value]="p.status" />
+                      @if (p.error_description) {
+                        <div class="danger-text small">{{ p.error_description }}</div>
+                      }
+                    </td>
+                    <td class="num" data-label="Amount">{{ p.amount_paise | money }}</td>
+                    <td data-label="Date" class="nowrap">{{ p.created_at | dt: true }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="card">
+        <h2>Timeline</h2>
+        @if (o.events.length === 0) {
+          <p class="muted">No events recorded.</p>
+        } @else {
+          <ol class="timeline">
+            @for (e of o.events.slice().reverse(); track $index) {
+              <li>
+                <app-status [value]="e.status" />
+                <span class="muted small"> {{ e.created_at | dt: true }}</span>
+                @if (e.note) {
+                  <p>{{ e.note }}</p>
+                }
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Customer</h2>
+        <dl class="dl">
+          <dt>Email</dt>
+          <dd><a [href]="'mailto:' + o.email">{{ o.email }}</a></dd>
+          @if (o.ship_phone) {
+            <dt>Phone</dt>
+            <dd><a [href]="'tel:' + o.ship_phone">{{ o.ship_phone }}</a></dd>
+          }
+          <dt>Account</dt>
+          <dd><a [routerLink]="['/customers', o.user_id]">View customer</a></dd>
+        </dl>
+        @if (o.customer_note) {
+          <h3 style="margin-top: 14px">Customer note</h3>
+          <p class="callout small" style="white-space: pre-line">{{ o.customer_note }}</p>
+        }
+      </section>
+
+      @if (address()) {
+        <section class="card">
+          <h2>Shipping address</h2>
+          <address style="font-style: normal; white-space: pre-line"><strong>{{ o.ship_name }}</strong>
+{{ address() }}</address>
+          @if (o.tracking_number) {
+            <dl class="dl small" style="margin-top: 12px">
+              <dt>Courier</dt>
+              <dd>{{ o.courier || '—' }}</dd>
+              <dt>Tracking</dt>
+              <dd class="mono">
+                @if (o.tracking_url) {
+                  <a [href]="o.tracking_url" target="_blank" rel="noopener noreferrer">{{ o.tracking_number }}</a>
+                } @else {
+                  {{ o.tracking_number }}
+                }
+              </dd>
+              @if (o.shipped_at) {
+                <dt>Shipped</dt>
+                <dd>{{ o.shipped_at | dt: true }}</dd>
+              }
+              @if (o.delivered_at) {
+                <dt>Delivered</dt>
+                <dd>{{ o.delivered_at | dt: true }}</dd>
+              }
+            </dl>
+          }
+        </section>
+      }
+
+      @if (o.is_gift) {
+        <section class="card">
+          <h2>Gift</h2>
+          <dl class="dl">
+            <dt>Recipient</dt>
+            <dd>{{ o.gift_recipient_name || '—' }}</dd>
+            @if (o.gift_recipient_email) {
+              <dt>Recipient email</dt>
+              <dd>{{ o.gift_recipient_email }}</dd>
+            }
+            <dt>Gift wrap</dt>
+            <dd>{{ o.gift_wrap ? 'Yes' : 'No' }}</dd>
+            <dt>Hide prices</dt>
+            <dd>{{ o.gift_hide_prices ? 'Yes' : 'No' }}</dd>
+          </dl>
+          @if (o.gift_message) {
+            <h3 style="margin-top: 14px">Message</h3>
+            <p class="callout" style="white-space: pre-line; font-family: var(--font-display); font-style: italic">{{ o.gift_message }}</p>
+          }
+        </section>
+      }
+
+      <section class="card">
+        <h2>Internal note</h2>
+        <form (submit)="$event.preventDefault(); saveNote()" class="stack" style="gap: 10px">
+          <app-field for="o-admin-note" [control]="note" hint="Only visible to admins.">
+            <label class="visually-hidden" for="o-admin-note">Internal note</label>
+            <textarea id="o-admin-note" class="textarea" rows="4" maxlength="4000" [formControl]="note"></textarea>
+          </app-field>
+          <div>
+            <button type="submit" class="btn btn-ghost" [disabled]="savingNote() || note.pristine">
+              {{ savingNote() ? 'Saving…' : 'Save note' }}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Key dates</h2>
+        <dl class="dl small">
+          <dt>Placed</dt>
+          <dd>{{ o.created_at | dt: true }}</dd>
+          <dt>Paid</dt>
+          <dd>{{ o.paid_at | dt: true }}</dd>
+          @if (o.cancelled_at) {
+            <dt>Cancelled</dt>
+            <dd>{{ o.cancelled_at | dt: true }}</dd>
+          }
+          @if (o.status === 'pending_payment' && o.expires_at) {
+            <dt>Payment window ends</dt>
+            <dd>{{ o.expires_at | dt: true }}</dd>
+          }
+        </dl>
+      </section>
+    </div>
+  </div>
+}

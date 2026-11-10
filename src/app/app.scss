@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+main {
+  display: block;
+  min-height: 60vh;
+  outline: none;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 6000;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--brown);
+  color: var(--cream);
+  transform: translateY(-160%);
+  transition: transform 0.3s;
+
+  &:focus { transform: none; }
+}

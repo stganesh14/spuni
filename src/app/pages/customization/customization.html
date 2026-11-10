@@ -1,0 +1,129 @@
+<div class="page cz-page">
+  <div class="container">
+    <header class="page-head head">
+      <span class="eyebrow">Customisation studio</span>
+      <h1 class="display" appRevealText="chars">Make it <em>yours.</em></h1>
+      <p class="lead">Initials on a wallet, your sketch turned into a bag, or a call with our master craftsperson.
+        Every request is reviewed by a person and answered within 48 hours.</p>
+    </header>
+
+    <div class="modes" role="tablist" aria-label="How would you like to customise?">
+      @for (w of ways; track w.mode) {
+        <button type="button" role="tab" class="mode" [class.on]="kind() === w.mode" [attr.aria-selected]="kind() === w.mode"
+                (click)="setKind(w.mode)">
+          <img [src]="w.image" [alt]="w.alt" loading="lazy" />
+          <span class="m-copy"><small>{{ w.step }}</small><b>{{ w.title }}</b></span>
+          <i class="bi bi-check-circle-fill tick" aria-hidden="true"></i>
+        </button>
+      }
+    </div>
+
+    @if (done(); as d) {
+      <section class="panel success" role="status">
+        <div class="seal"><i class="bi bi-check2"></i></div>
+        <h2>Request received</h2>
+        <p>Your reference is <b>{{ d.reference }}</b>. We've emailed you a copy and an artisan will reply within 48 hours
+          by {{ d.preferred_contact === 'email' ? 'email' : d.preferred_contact }}.</p>
+        <div class="row">
+          <a class="btn" routerLink="/account/customizations">Track my requests</a>
+          <button type="button" class="btn btn-ghost" (click)="reset()">Send another</button>
+        </div>
+      </section>
+    } @else {
+      <section class="layout">
+        <aside class="explain">
+          <h2>{{ way().title }}</h2>
+          <p>{{ way().text }}</p>
+          <ul>@for (pt of way().points; track pt) { <li><i class="bi bi-check2"></i> {{ pt }}</li> }</ul>
+          <div class="steps">
+            <span><b>1</b> Send your request</span><span><b>2</b> Get a design and quote</span><span><b>3</b> Approve and we craft it</span>
+          </div>
+        </aside>
+
+        <form class="panel form" (ngSubmit)="submit()" (input)="saveDraft()" novalidate>
+          @if (kind() !== 'upload' || products().length) {
+            <div class="field">
+              <label for="c-product">Which piece? @if (kind() !== 'catalog') { <span class="muted">(optional)</span> }</label>
+              <select id="c-product" class="select" name="product" [(ngModel)]="draft.productId" (change)="saveDraft()">
+                <option [ngValue]="null">{{ kind() === 'catalog' ? 'Choose a customisable piece' : 'Not sure yet' }}</option>
+                @for (p of products(); track p.id) { <option [ngValue]="p.id">{{ p.name }} · {{ p.category.name }}</option> }
+              </select>
+            </div>
+          }
+
+          @if (kind() === 'catalog') {
+            <div class="field">
+              <label for="c-text">Initials or text to add <span class="muted">(up to 60 characters)</span></label>
+              <input id="c-text" class="input" name="pt" [(ngModel)]="draft.personalization" maxlength="60" placeholder="e.g. A.K. or ‘For Amma’" />
+            </div>
+          }
+
+          <div class="field">
+            <label for="c-details">{{ kind() === 'expert' ? 'What would you like to discuss?' : 'Describe what you have in mind' }}</label>
+            <textarea id="c-details" class="textarea" rows="5" name="details" [(ngModel)]="draft.details" maxlength="2000"
+                      [placeholder]="kind() === 'upload' ? 'Size, colours, pockets, straps, deadline…' : 'Colours, hardware, occasion, quantity…'"></textarea>
+            <small class="muted">{{ draft.details.length }}/2000</small>
+          </div>
+
+          @if (kind() !== 'catalog') {
+            <div class="field">
+              <label>Reference images or sketches @if (kind() === 'expert') { <span class="muted">(optional)</span> }</label>
+              <label class="drop" [class.over]="dragOver()" (dragover)="$event.preventDefault(); dragOver.set(true)"
+                     (dragleave)="dragOver.set(false)" (drop)="onDrop($event)">
+                <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf"
+                       (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
+                <i class="bi bi-cloud-arrow-up"></i>
+                <span><b>Drop files here</b> or tap to browse</span>
+                <small>JPG, PNG, WebP or PDF · up to 5 files · 8 MB each</small>
+              </label>
+              @if (files().length) {
+                <ul class="picks">
+                  @for (f of files(); track f.file; let i = $index) {
+                    <li>
+                      @if (f.preview) { <img [src]="f.preview" [alt]="f.file.name" /> } @else { <i class="bi bi-file-earmark-pdf"></i> }
+                      <span>{{ f.file.name }}</span>
+                      <button type="button" (click)="removeFile(i)" [attr.aria-label]="'Remove ' + f.file.name"><i class="bi bi-x"></i></button>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="c-budget">Budget in ₹ <span class="muted">(optional)</span></label>
+              <input id="c-budget" class="input" name="budget" inputmode="numeric" [(ngModel)]="draft.budget" maxlength="9" />
+            </div>
+            <div class="field">
+              <label for="c-contact">Best way to reach you</label>
+              <select id="c-contact" class="select" name="contact" [(ngModel)]="draft.contact" (change)="saveDraft()">
+                <option value="email">Email</option><option value="phone">Phone call</option><option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+            @if (draft.contact !== 'email' || kind() === 'expert') {
+              <div class="field">
+                <label for="c-phone">Phone number</label>
+                <input id="c-phone" class="input" name="phone" inputmode="tel" [(ngModel)]="draft.phone" maxlength="16" />
+              </div>
+              <div class="field">
+                <label for="c-time">Preferred time <span class="muted">(optional)</span></label>
+                <input id="c-time" class="input" name="time" [(ngModel)]="draft.time" maxlength="80" placeholder="Weekdays after 6 pm" />
+              </div>
+            }
+          </div>
+
+          @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+          <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+            @if (busy()) { <span class="spin"></span> Sending… }
+            @else if (!auth.isLoggedIn()) { Sign in to send request <i class="bi bi-arrow-right"></i> }
+            @else { <i class="bi bi-send"></i> Request customisation }
+          </button>
+          @if (!auth.isLoggedIn()) {
+            <p class="muted small">We'll keep what you've typed while you sign in. Attached files need to be added again.</p>
+          }
+        </form>
+      </section>
+    }
+  </div>
+</div>

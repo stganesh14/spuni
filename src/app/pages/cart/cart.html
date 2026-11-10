@@ -1,0 +1,74 @@
+<div class="page cart">
+  <div class="container">
+    <header class="page-head">
+      <span class="eyebrow">Your bag</span>
+      <h1 class="title">{{ cart.count() ? 'Ready when you are.' : 'Your bag is empty.' }}</h1>
+    </header>
+
+    @if (!cart.items().length) {
+      <app-empty-state icon="bi-bag-heart" title="Nothing in here yet"
+                       text="Pieces you add will wait for you here, even if you close the tab." actionLink="/shop"
+                       actionLabel="Start exploring" />
+    } @else {
+      <div class="layout">
+        <section aria-label="Items">
+          @if (quotes.error()) { <p class="alert">{{ quotes.error() }}</p> }
+          <ul class="lines">
+            @for (item of cart.items(); track item.product_id; let i = $index) {
+              @let info = lineInfo().get(item.product_id);
+              <li class="line" [style.--i]="i">
+                <a class="thumb" [routerLink]="['/product', item.slug]">
+                  @if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" loading="lazy" /> }
+                </a>
+                <div class="meta">
+                  <a class="name" [routerLink]="['/product', item.slug]">{{ item.name }}</a>
+                  <span class="unit">{{ item.price_paise | inr }} each</span>
+                  @if (info?.issue) { <span class="issue"><i class="bi bi-exclamation-triangle"></i> {{ info!.issue }}</span> }
+                  <div class="row">
+                    <div class="stepper" role="group" [attr.aria-label]="'Quantity for ' + item.name">
+                      <button type="button" (click)="qty(item.product_id, item.quantity - 1)" aria-label="Decrease">
+                        <i class="bi bi-dash"></i></button>
+                      <span>{{ item.quantity }}</span>
+                      <button type="button" (click)="qty(item.product_id, item.quantity + 1)"
+                              [disabled]="item.quantity >= (info?.available_quantity ?? maxQty)" aria-label="Increase">
+                        <i class="bi bi-plus"></i></button>
+                    </div>
+                    <button type="button" class="remove" (click)="cart.remove(item.product_id)">Remove</button>
+                  </div>
+                </div>
+                <strong class="line-total">{{ (info?.line_total_paise ?? item.price_paise * item.quantity) | inr }}</strong>
+              </li>
+            }
+          </ul>
+          <a class="link-arrow back" routerLink="/shop">Keep shopping</a>
+        </section>
+
+        <aside class="summary panel" aria-label="Order summary">
+          <h2>Summary</h2>
+          @if (threshold()) {
+            <div class="ship">
+              @if (toFree() > 0) { <p>Add <b>{{ toFree() | inr }}</b> more for free shipping</p> }
+              @else { <p><i class="bi bi-truck"></i> You've unlocked free shipping</p> }
+              <div class="bar"><span [style.width.%]="progress()"></span></div>
+            </div>
+          }
+          <dl>
+            <dt>Subtotal</dt><dd>{{ subtotal() | inr }}</dd>
+            <dt>Shipping</dt><dd>{{ shipping() === null ? 'Calculated…' : shipping() === 0 ? 'Free' : (shipping() | inr) }}</dd>
+            <dt class="total">Estimated total</dt><dd class="total">{{ total() | inr }}</dd>
+          </dl>
+          @if (reward() > 0) {
+            <p class="reward"><i class="bi bi-wallet2"></i> You'll earn <b>{{ reward() | inr }}</b> in your SPUNI Wallet</p>
+          }
+          <p class="note">Wallet points, gift wrap and a gift note can be added at checkout.</p>
+          @if (quote()?.has_issues) { <p class="alert error">Please fix the items marked above to continue.</p> }
+          <a class="btn btn-primary btn-block" routerLink="/checkout" [class.is-disabled]="quote()?.has_issues"
+             [attr.aria-disabled]="quote()?.has_issues || null">
+            {{ auth.isLoggedIn() ? 'Checkout securely' : 'Sign in and checkout' }} <i class="bi bi-lock"></i>
+          </a>
+          <p class="secure"><i class="bi bi-shield-check"></i> Payments secured by Razorpay. UPI, cards and net banking.</p>
+        </aside>
+      </div>
+    }
+  </div>
+</div>

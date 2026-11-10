@@ -1,0 +1,10 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import button %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">It's here</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:28px;">{{ title }} has launched.</h1>
+{% if image_url %}<img src="{{ image_url }}" alt="{{ title }}" width="536" style="width:100%;max-width:536px;height:auto;display:block;margin:0 0 18px 0;border:1px solid #c8b8a0;">{% endif %}
+<p>{{ message }}</p>
+{{ button(url, "Shop the launch") }}
+{% endblock %}
+{% block footer_extra %}<br><a href="{{ unsubscribe_url }}" style="color:#7a6250;">Stop these notifications</a>{% endblock %}

@@ -1,0 +1,154 @@
+<app-page-header title="Dashboard" subtitle="How the atelier is doing today and over the last 30 days.">
+  <button type="button" class="btn btn-ghost" (click)="load()" [disabled]="loading()">Refresh</button>
+</app-page-header>
+
+<app-state [loading]="loading() && !data()" [error]="data() ? null : error()" (retry)="load()" />
+
+@if (data(); as d) {
+  <section class="kpis" aria-label="Key figures">
+    @for (k of kpis(); track k.label) {
+      @if (k.link) {
+        <a class="kpi" [class.kpi-accent]="k.tone === 'accent'" [routerLink]="k.link" [queryParams]="k.query ?? {}">
+          <span class="kpi-label">{{ k.label }}</span>
+          <span class="kpi-value">{{ k.value }}</span>
+          @if (k.hint) {
+            <span class="kpi-hint">{{ k.hint }}</span>
+          }
+        </a>
+      } @else {
+        <div class="kpi">
+          <span class="kpi-label">{{ k.label }}</span>
+          <span class="kpi-value">{{ k.value }}</span>
+          @if (k.hint) {
+            <span class="kpi-hint">{{ k.hint }}</span>
+          }
+        </div>
+      }
+    }
+  </section>
+
+  <div class="grid-halves charts">
+    <section class="card">
+      <div class="card-header">
+        <h2>Revenue · last 30 days</h2>
+        <span class="muted small">{{ d.revenue_30d_paise | money }}</span>
+      </div>
+      <app-bar-chart
+        [data]="revenueSeries()"
+        caption="Paid revenue per day for the last 30 days"
+        valueLabel="Revenue"
+        [tickFormat]="money"
+      />
+    </section>
+    <section class="card">
+      <div class="card-header">
+        <h2>Paid orders · last 30 days</h2>
+        <span class="muted small">{{ d.orders_30d }} total</span>
+      </div>
+      <app-bar-chart
+        [data]="orderSeries()"
+        color="var(--gold)"
+        caption="Paid orders per day for the last 30 days"
+        valueLabel="Orders"
+        [tickFormat]="count"
+      />
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="card card-flush">
+      <div class="card-header pad">
+        <h2>Recent orders</h2>
+        <a routerLink="/orders" class="small">View all</a>
+      </div>
+      @if (d.recent_orders.length === 0) {
+        <app-state [empty]="true" emptyTitle="No orders yet" emptyText="New orders will appear here." />
+      } @else {
+        <div class="table-wrap">
+          <table class="table responsive">
+            <thead>
+              <tr>
+                <th scope="col">Order</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (o of d.recent_orders; track o.number) {
+                <tr>
+                  <td class="primary-cell" data-label="">
+                    <a class="row-link" [routerLink]="['/orders', o.number]">{{ o.number }}</a>
+                    <div class="muted small">{{ o.created_at | dt: true }}</div>
+                  </td>
+                  <td data-label="Customer">{{ o.customer_name || o.email }}</td>
+                  <td data-label="Status"><app-status [value]="o.status" /></td>
+                  <td class="num" data-label="Total">{{ o.total_paise | money }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Orders by status</h2>
+        @if (breakdown().length === 0) {
+          <p class="muted">No orders yet.</p>
+        } @else {
+          <ul class="breakdown">
+            @for (b of breakdown(); track b.status) {
+              <li>
+                <a [routerLink]="'/orders'" [queryParams]="{ status: b.status }">
+                  <span class="b-label"><app-status [value]="b.status" /></span>
+                  <span class="b-bar" aria-hidden="true"><span [style.width.%]="b.pct"></span></span>
+                  <span class="b-count">{{ b.count }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="card">
+        <h2>Top products · 30 days</h2>
+        @if (d.top_products.length === 0) {
+          <p class="muted">No sales in the last 30 days.</p>
+        } @else {
+          <ol class="ranked">
+            @for (p of d.top_products; track p.name) {
+              <li>
+                <span class="r-name">{{ p.name }}</span>
+                <span class="r-meta">{{ p.quantity }} sold · {{ p.revenue_paise | money }}</span>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Low stock</h2>
+          <a routerLink="/products" [queryParams]="{ status: 'low_stock' }" class="small">Manage</a>
+        </div>
+        @if (d.low_stock.length === 0) {
+          <p class="muted">All active products have more than 5 in stock.</p>
+        } @else {
+          <ul class="ranked">
+            @for (p of d.low_stock; track p.id) {
+              <li>
+                <a class="r-name" [routerLink]="['/products', p.id]">{{ p.name }}</a>
+                <span class="r-meta">
+                  <span class="mono">{{ p.sku }}</span> ·
+                  <span [class.danger-text]="p.stock === 0">{{ p.stock === 0 ? 'Out of stock' : p.stock + ' left' }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+  </div>
+}

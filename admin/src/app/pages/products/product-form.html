@@ -1,0 +1,157 @@
+<app-page-header [title]="isNew ? 'New product' : product()?.name || 'Edit product'" eyebrow="Catalogue · Products">
+  <a routerLink="/products" class="btn btn-ghost">Back to products</a>
+  @if (!isNew && product()) {
+    <button type="button" class="btn btn-ghost danger-text" (click)="remove()">Delete</button>
+  }
+</app-page-header>
+
+<app-state [loading]="loading()" [error]="loadError()" (retry)="load()" />
+
+@if (!loading() && !loadError()) {
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (formError()) {
+      <div class="form-alert" role="alert">
+        {{ formError() }}
+        @if (unmatched().length) {
+          <ul>
+            @for (f of unmatched(); track $index) {
+              <li>{{ f.field ? f.field + ': ' : '' }}{{ f.message }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    <div class="grid-2">
+      <div class="stack">
+        <section class="card">
+          <h2 class="section-title">Basics</h2>
+          <div class="form-grid">
+            <app-field class="span-2" label="Name" for="p-name" [required]="true" [control]="ctrl('name')">
+              <input id="p-name" class="input" formControlName="name" maxlength="120" />
+            </app-field>
+            <app-field label="Slug" for="p-slug" [required]="true" [control]="ctrl('slug')" hint="Used in the product URL.">
+              <div class="input-group">
+                <span class="addon">/product/</span>
+                <input id="p-slug" class="input" formControlName="slug" maxlength="140" (input)="onSlugInput()" />
+              </div>
+            </app-field>
+            <app-field label="SKU" for="p-sku" [required]="true" [control]="ctrl('sku')" hint="A–Z, 0–9 and hyphens, 3–40 chars.">
+              <input id="p-sku" class="input mono" formControlName="sku" maxlength="40" (input)="onSkuInput($event)" autocapitalize="characters" />
+            </app-field>
+            <div class="span-2">
+              <button type="button" class="btn-link small" (click)="regenerateSlug()">Regenerate slug from name</button>
+            </div>
+            <app-field label="Category" for="p-category" [required]="true" [control]="ctrl('category_id')">
+              <select id="p-category" class="select" formControlName="category_id">
+                <option [ngValue]="null" disabled>Choose a category</option>
+                @for (c of categories(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}{{ c.is_active ? '' : ' (hidden)' }}</option>
+                }
+              </select>
+            </app-field>
+            <app-field label="Gender" for="p-gender" [control]="ctrl('gender')">
+              <select id="p-gender" class="select" formControlName="gender">
+                <option value="unisex">Unisex</option>
+                <option value="women">Women</option>
+                <option value="men">Men</option>
+              </select>
+            </app-field>
+            <app-field class="span-2" label="Short description" for="p-short" [control]="ctrl('short_description')" hint="Shown on product cards. Up to 280 characters.">
+              <input id="p-short" class="input" formControlName="short_description" maxlength="280" />
+            </app-field>
+            <app-field class="span-2" label="Description" for="p-desc" [control]="ctrl('description')">
+              <textarea id="p-desc" class="textarea" rows="6" formControlName="description" maxlength="8000"></textarea>
+            </app-field>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">Images</h2>
+          <app-image-manager [(images)]="images" folder="products" [max]="12" />
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">Details</h2>
+          <div class="form-grid">
+            <app-field label="Material" for="p-material" [control]="ctrl('material')">
+              <input id="p-material" class="input" formControlName="material" maxlength="120" />
+            </app-field>
+            <app-field label="Colour" for="p-color" [control]="ctrl('color')">
+              <input id="p-color" class="input" formControlName="color" maxlength="60" />
+            </app-field>
+            <app-field label="Dimensions" for="p-dim" [control]="ctrl('dimensions')">
+              <input id="p-dim" class="input" formControlName="dimensions" maxlength="120" placeholder="e.g. 41 x 30 x 9 cm" />
+            </app-field>
+            <app-field label="Weight (grams)" for="p-weight" [control]="ctrl('weight_grams')">
+              <input id="p-weight" class="input" type="number" min="1" max="100000" inputmode="numeric" formControlName="weight_grams" />
+            </app-field>
+            <app-field class="span-2" label="Care instructions" for="p-care" [control]="ctrl('care_instructions')">
+              <textarea id="p-care" class="textarea" rows="3" formControlName="care_instructions" maxlength="2000"></textarea>
+            </app-field>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">Search engine listing</h2>
+          <div class="form-grid">
+            <app-field class="span-2" label="Meta title" for="p-mt" [control]="ctrl('meta_title')" hint="Up to 160 characters.">
+              <input id="p-mt" class="input" formControlName="meta_title" maxlength="160" />
+            </app-field>
+            <app-field class="span-2" label="Meta description" for="p-md" [control]="ctrl('meta_description')" hint="Up to 300 characters.">
+              <textarea id="p-md" class="textarea" rows="3" formControlName="meta_description" maxlength="300"></textarea>
+            </app-field>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <h2 class="section-title">Pricing &amp; stock</h2>
+          <div class="form-grid" style="grid-template-columns: 1fr">
+            <app-field label="Price (₹)" for="p-price" [required]="true" [control]="ctrl('price')">
+              <div class="input-group">
+                <span class="addon">₹</span>
+                <input id="p-price" class="input" inputmode="decimal" formControlName="price" placeholder="14999" />
+              </div>
+            </app-field>
+            <app-field label="Compare-at price (₹)" for="p-cmp" [control]="ctrl('compare_at_price')" hint="Optional original price, shown struck through.">
+              <div class="input-group">
+                <span class="addon">₹</span>
+                <input id="p-cmp" class="input" inputmode="decimal" formControlName="compare_at_price" />
+              </div>
+            </app-field>
+            <app-field label="Stock" for="p-stock" [required]="true" [control]="ctrl('stock')">
+              <input id="p-stock" class="input" type="number" min="0" max="1000000" inputmode="numeric" formControlName="stock" />
+            </app-field>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">Visibility</h2>
+          <div class="stack" style="gap: 10px">
+            <label class="check"><input type="checkbox" formControlName="is_active" /> Active (visible in store)</label>
+            <label class="check"><input type="checkbox" formControlName="is_featured" /> Featured</label>
+            <label class="check"><input type="checkbox" formControlName="is_bestseller" /> Best seller</label>
+            <label class="check"><input type="checkbox" formControlName="is_customizable" /> Customizable</label>
+          </div>
+          <div class="form-grid" style="grid-template-columns: 1fr; margin-top: 16px">
+            <app-field label="Badge" for="p-badge" [control]="ctrl('badge')" hint="Short label such as “New” or “Best Seller”.">
+              <input id="p-badge" class="input" formControlName="badge" maxlength="30" />
+            </app-field>
+            <app-field label="Sort order" for="p-sort" [control]="ctrl('sort_order')" hint="Lower numbers appear first.">
+              <input id="p-sort" class="input" type="number" min="0" max="10000" formControlName="sort_order" />
+            </app-field>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="form-actions sticky-actions">
+      <a routerLink="/products" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : isNew ? 'Create product' : 'Save changes' }}
+      </button>
+    </div>
+  </form>
+}

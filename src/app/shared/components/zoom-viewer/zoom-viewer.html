@@ -1,0 +1,67 @@
+@if (request(); as req) {
+  <div #overlay class="zv" role="dialog" aria-modal="true" [attr.aria-label]="req.title || 'Image viewer'">
+    <div class="zv-top zv-chrome">
+      <div class="zv-title">
+        <span class="zv-kicker">Zoom view</span>
+        @if (req.title) { <strong>{{ req.title }}</strong> }
+      </div>
+      <div class="zv-actions">
+        @if (req.link) {
+          <a class="zv-link" [routerLink]="req.link" (click)="close()">{{ req.linkLabel || 'View product' }} <i class="bi bi-arrow-up-right"></i></a>
+        }
+        <button type="button" class="zv-close" (click)="close()" aria-label="Close viewer"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+
+    <div
+      #stage
+      class="zv-stage"
+      [class.is-zoomed]="scale() > 1.01"
+      [class.is-dragging]="dragging()"
+      (click)="onBackdrop($event)"
+      (wheel)="onWheel($event)"
+      (dblclick)="onDoubleClick($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+    >
+      @if (current(); as img) {
+        <div class="zv-pan" [style.transform]="transform()">
+          <img
+            #image
+            [src]="img.url"
+            [alt]="img.alt || req.title || 'Product image'"
+            draggable="false"
+            (load)="onLoad()"
+            [class.is-loaded]="loaded()"
+          />
+        </div>
+      }
+      @if (!loaded()) { <span class="zv-spinner spin" aria-hidden="true"></span> }
+
+      @if (req.images.length > 1) {
+        <button type="button" class="zv-nav prev zv-chrome" (click)="go(-1); $event.stopPropagation()" aria-label="Previous image"><i class="bi bi-arrow-left"></i></button>
+        <button type="button" class="zv-nav next zv-chrome" (click)="go(1); $event.stopPropagation()" aria-label="Next image"><i class="bi bi-arrow-right"></i></button>
+      }
+    </div>
+
+    <div class="zv-bottom zv-chrome">
+      <div class="zv-zoom" role="group" aria-label="Zoom controls">
+        <button type="button" (click)="zoomOut()" [disabled]="scale() <= 1" aria-label="Zoom out"><i class="bi bi-dash-lg"></i></button>
+        <button type="button" class="zv-percent" (click)="reset()" aria-label="Reset zoom">{{ percent() }}%</button>
+        <button type="button" (click)="zoomIn()" [disabled]="scale() >= 5" aria-label="Zoom in"><i class="bi bi-plus-lg"></i></button>
+      </div>
+      @if (req.images.length > 1) {
+        <div class="zv-thumbs">
+          @for (img of req.images; track img.url; let i = $index) {
+            <button type="button" [class.active]="i === index()" (click)="select(i)" [attr.aria-label]="'Show image ' + (i + 1)">
+              <img [src]="img.url" alt="" loading="lazy" />
+            </button>
+          }
+        </div>
+      }
+      <p class="zv-hint">Scroll, pinch or double-tap to zoom · drag to explore</p>
+    </div>
+  </div>
+}

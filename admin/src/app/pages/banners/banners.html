@@ -1,0 +1,100 @@
+<app-page-header title="Hero banners" eyebrow="Catalogue" subtitle="Slides in the storefront hero carousel, shown in sort order.">
+  <button type="button" class="btn btn-primary" (click)="open('new')">+ New banner</button>
+</app-page-header>
+
+<section class="card card-flush">
+  <app-state
+    [loading]="loading() && !items()"
+    [error]="error()"
+    [empty]="!!items() && items()!.length === 0"
+    emptyTitle="No banners yet"
+    (retry)="load()"
+  />
+  @if (items(); as list) {
+    @if (list.length && !error()) {
+      <div class="table-wrap">
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <th scope="col">Banner</th>
+              <th scope="col">Link</th>
+              <th scope="col" class="num">Order</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="actions"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of list; track b.id) {
+              <tr>
+                <td class="primary-cell" data-label="">
+                  <div class="cell-main">
+                    <img class="thumb thumb-wide" [src]="b.image_url | media" [alt]="b.alt || ''" loading="lazy" />
+                    <div>
+                      <strong>{{ b.title_one }}</strong>
+                      <span class="muted small" style="font-family: var(--font-display); font-style: italic">{{ b.title_two }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Link" class="mono">{{ b.link_url || '—' }}</td>
+                <td class="num" data-label="Sort order">{{ b.sort_order }}</td>
+                <td data-label="Status">
+                  <label class="check">
+                    <input
+                      type="checkbox"
+                      [checked]="b.is_active"
+                      [disabled]="toggling() === b.id"
+                      (change)="toggle(b)"
+                      [attr.aria-label]="'Show banner ' + b.title_one"
+                    />
+                    <app-status [value]="b.is_active ? 'active' : 'inactive'" />
+                  </label>
+                </td>
+                <td class="actions" data-label="">
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="open(b)">Edit</button>
+                  <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="remove(b)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>
+
+<app-modal [open]="!!editing()" [title]="editing() === 'new' ? 'New banner' : 'Edit banner'" [wide]="true" (closed)="editing.set(null)">
+  @if (editing()) {
+    <form id="banner-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <p class="form-alert" role="alert">{{ formError() }}</p>
+      }
+      <div class="form-grid">
+        <app-field class="span-2" label="Image" for="b-image" [required]="true" [control]="form.controls.image_url" hint="Wide landscape photo, at least 1600px across.">
+          <app-image-upload id="b-image" folder="banners" aspect="wide" [required]="true" formControlName="image_url" [alt]="form.controls.alt.value" />
+        </app-field>
+        <app-field label="Headline (line 1)" for="b-t1" [required]="true" [control]="form.controls.title_one">
+          <input id="b-t1" class="input" formControlName="title_one" maxlength="80" placeholder="Made for" />
+        </app-field>
+        <app-field label="Headline (line 2, italic)" for="b-t2" [control]="form.controls.title_two">
+          <input id="b-t2" class="input" formControlName="title_two" maxlength="80" placeholder="everyday rituals." />
+        </app-field>
+        <app-field class="span-2" label="Alt text" for="b-alt" [control]="form.controls.alt" hint="Describe the photo for screen readers.">
+          <input id="b-alt" class="input" formControlName="alt" maxlength="160" />
+        </app-field>
+        <app-field label="Link" for="b-link" [control]="form.controls.link_url" hint="Site path like /shop or https:// URL.">
+          <input id="b-link" class="input mono" formControlName="link_url" maxlength="300" placeholder="/shop" />
+        </app-field>
+        <app-field label="Sort order" for="b-sort" [control]="form.controls.sort_order">
+          <input id="b-sort" class="input" type="number" min="0" max="10000" formControlName="sort_order" />
+        </app-field>
+        <label class="check span-2"><input type="checkbox" formControlName="is_active" /> Active (shown in the carousel)</label>
+      </div>
+    </form>
+  }
+  <div modal-actions>
+    <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="banner-form" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save banner' }}
+    </button>
+  </div>
+</app-modal>

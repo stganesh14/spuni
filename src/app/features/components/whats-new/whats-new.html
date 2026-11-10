@@ -1,0 +1,83 @@
+<section class="wn" id="whats-new" aria-labelledby="wn-title">
+  <div class="container">
+    <header class="head">
+      <div>
+        <span class="eyebrow">What's New · Upcoming drops</span>
+        <h2 id="wn-title" class="title" appRevealText="words">Dropping <em>soon.</em> Be first in line.</h2>
+      </div>
+      <p class="lead">Tap <strong>Notify me</strong> and we'll email you the moment a piece goes live. No spam, just the drop.</p>
+    </header>
+
+    @if (lead(); as l) {
+      <article class="feature" data-aos="fade-up">
+        <div class="f-media" appTilt="4">
+          @if (l.image_url) {
+            <img [src]="l.image_url" [alt]="l.title" loading="lazy" [appZoomable]="l.image_url" [zoomTitle]="l.title" />
+          }
+          <span class="sticker" aria-hidden="true">
+            <svg viewBox="0 0 100 100"><defs><path id="wn-circle" d="M50 50 m-38 0 a38 38 0 1 1 76 0 a38 38 0 1 1 -76 0" /></defs>
+              <text><textPath href="#wn-circle">COMING SOON · COMING SOON · COMING SOON ·</textPath></text></svg>
+            <i class="bi bi-stars"></i>
+          </span>
+        </div>
+        <div class="f-copy">
+          <div class="meta">
+            @if (l.category) { <span class="chip">{{ l.category.name }}</span> }
+            @if (l.status === 'launched') { <span class="chip live">Live now</span> }
+            @else if (l.launch_at) { <span class="date">{{ l.launch_at | date: 'd MMM y' }}</span> }
+          </div>
+          <h3>{{ l.title }}</h3>
+          @if (l.tagline) { <p class="tagline">{{ l.tagline }}</p> }
+          @if (l.description) { <p class="desc">{{ l.description }}</p> }
+
+          @if (l.status === 'upcoming') {
+            @if (l.launch_at) { <app-countdown [to]="l.launch_at" /> }
+            <div class="actions">
+              <app-notify-me [slug]="l.slug" [title]="l.title" />
+              @if (l.subscriber_count > 0) {
+                <span class="waiting"><span class="faces" aria-hidden="true"><i></i><i></i><i></i></span>
+                  {{ l.subscriber_count }} {{ l.subscriber_count === 1 ? 'person is' : 'people are' }} waiting</span>
+              }
+            </div>
+          } @else {
+            <a class="btn btn-primary" [routerLink]="shopLink(l)">Shop the drop <i class="bi bi-arrow-right"></i></a>
+          }
+        </div>
+      </article>
+    } @else {
+      <p class="empty">New drops are being stitched. Check back soon.</p>
+    }
+
+    @if (rest().length) {
+      <div class="grid">
+        @for (l of rest(); track l.id; let i = $index) {
+          <article class="mini" data-aos="fade-up" [attr.data-aos-delay]="i * 90">
+            <div class="m-media">
+              @if (l.image_url) {
+                <img [src]="l.image_url" [alt]="l.title" loading="lazy" [appZoomable]="l.image_url" [zoomTitle]="l.title" />
+              }
+              <span class="when">
+                @if (l.status === 'launched') { Live now }
+                @else if (l.launch_at) { {{ l.launch_at | date: 'd MMM' }} } @else { Soon }
+              </span>
+            </div>
+            <div class="m-copy">
+              <h3>{{ l.title }}</h3>
+              @if (l.tagline) { <p>{{ l.tagline }}</p> }
+              @if (l.status === 'upcoming') {
+                @if (l.launch_at) { <app-countdown [to]="l.launch_at" [compact]="true" /> }
+                <app-notify-me [slug]="l.slug" [title]="l.title" />
+              } @else {
+                <a class="link-arrow" [routerLink]="shopLink(l)">Shop now</a>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    @if (!full() && launches().length) {
+      <div class="more"><a class="link-arrow" routerLink="/whats-new">See every upcoming drop</a></div>
+    }
+  </div>
+</section>

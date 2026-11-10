@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.angular/
+backend/.env
+backend/.env.example
+backend/media/
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+admin/node_modules/
+admin/dist/
+admin/.angular/

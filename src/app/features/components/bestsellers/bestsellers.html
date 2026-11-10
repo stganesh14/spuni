@@ -1,0 +1,42 @@
+<section class="bs" aria-labelledby="bs-title">
+  <div class="container">
+    <header class="head">
+      <div>
+        <span class="eyebrow">{{ eyebrow() }}</span>
+        <h2 id="bs-title" class="title" appRevealText="words">{{ heading() }}</h2>
+      </div>
+      <div class="nav">
+        <button type="button" class="icon-btn" (click)="scrollBy(-1)" aria-label="Previous products">
+          <i class="bi bi-arrow-left"></i></button>
+        <button type="button" class="icon-btn" (click)="scrollBy(1)" aria-label="Next products">
+          <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </header>
+
+    @if (categories().length > 1) {
+      <div class="chips" role="toolbar" aria-label="Filter by category">
+        <button type="button" class="chip" [class.on]="!filter()" (click)="setFilter(null)">All</button>
+        @for (c of categories(); track c.slug) {
+          <button type="button" class="chip" [class.on]="filter() === c.slug" (click)="setFilter(c.slug)">{{ c.name }}</button>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="rail" #rail (scroll)="onScroll()" (pointerdown)="onPointerDown($event)"
+       (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()"
+       data-lenis-prevent-horizontal>
+    @for (p of visible(); track p.id; let i = $index) {
+      <div class="slot" [style.--i]="i"><app-product-card [product]="p" [index]="i" /></div>
+    } @empty {
+      @for (n of [1, 2, 3, 4]; track n) { <div class="slot"><div class="skeleton sk"></div></div> }
+    }
+    <a class="slot end" routerLink="/shop">
+      <span>See the full<br /><em>collection</em></span><i class="bi bi-arrow-right"></i>
+    </a>
+  </div>
+
+  <div class="container">
+    <div class="bar" aria-hidden="true"><span [style.transform]="'scaleX(' + (0.08 + progress() * 0.92) + ')'"></span></div>
+  </div>
+</section>

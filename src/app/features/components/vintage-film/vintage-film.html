@@ -1,0 +1,245 @@
+<section
+  #filmSection
+  class="spuni-film"
+>
+
+  <!-- =====================================================
+       BACKGROUND
+  ====================================================== -->
+
+  <div
+    class="film-background"
+  >
+
+    <div
+      class="film-background-text"
+    >
+      SPUNI
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       OUTER FRAME
+  ====================================================== -->
+
+  <div
+    class="film-frame"
+  >
+
+
+    <!-- ===============================================
+         TOP LINE
+    ================================================ -->
+
+    <div
+      class="film-top-line"
+    >
+
+      <span
+        class="film-index"
+      >
+      </span>
+
+
+      <span
+        class="film-line"
+      ></span>
+
+
+      <span
+        class="film-number"
+      >
+        SPUNI
+      </span>
+
+    </div>
+
+
+    <!-- ===============================================
+         VIDEO
+    ================================================ -->
+
+    <div
+      class="film-video-wrap"
+    >
+
+      <video
+        #filmVideo
+
+        class="film-video"
+
+        muted
+
+        [muted]="true"
+
+        (volumechange)="keepMuted()"
+
+        loop
+
+        playsinline
+
+        preload="metadata"
+
+        poster="/assets/video-poster.png"
+
+        aria-label="SPUNI handcrafted leather atelier film"
+      >
+
+        <source
+          src="/assets/film.mp4"
+          type="video/mp4"
+        />
+
+      </video>
+
+
+      <!-- =============================================
+           VINTAGE COLOR TREATMENT
+      ============================================== -->
+
+      <div
+        class="film-warm-overlay"
+      ></div>
+
+
+      <!-- =============================================
+           VIGNETTE
+      ============================================== -->
+
+      <div
+        class="film-vignette"
+      ></div>
+
+
+      <!-- =============================================
+           FILM GRAIN
+      ============================================== -->
+
+      <div
+        class="film-grain"
+      ></div>
+
+
+      <!-- =============================================
+           SCRATCH / FILM LINE
+      ============================================== -->
+
+      <div
+        class="film-scratch"
+      ></div>
+
+
+      <!-- =============================================
+           CENTER MARK
+      ============================================== -->
+
+      <div
+        class="film-center-mark"
+      >
+
+        <span></span>
+
+        <span></span>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===============================================
+         MAIN CONTENT
+    ================================================ -->
+
+    <div
+      class="film-content"
+    >
+
+      <p
+        class="film-eyebrow"
+      >
+        A STUDY IN CRAFT
+      </p>
+
+
+      <h2>
+
+        Made slowly.
+
+        <em>
+          Meant to last.
+        </em>
+
+      </h2>
+
+
+      <a
+        routerLink="/about"
+        class="film-link"
+      >
+
+        <span
+          class="film-link-circle"
+        >
+          ↗
+        </span>
+
+        <span>
+          Explore the atelier
+        </span>
+
+      </a>
+
+    </div>
+
+
+    <!-- ===============================================
+         SIDE NOTE
+    ================================================ -->
+
+    <div
+      class="film-side-note"
+    >
+
+    </div>
+
+
+    <!-- ===============================================
+         CAPTION
+    ================================================ -->
+
+    <div
+      class="film-caption"
+    >
+
+    </div>
+
+
+    <!-- ===============================================
+         BOTTOM LINE
+    ================================================ -->
+
+    <div
+      class="film-bottom"
+    >
+
+      <span>
+        LEATHER / CRAFT / TIME
+      </span>
+
+
+      <span>
+        SPUNI
+      </span>
+
+
+      <span>
+        2026
+      </span>
+
+    </div>
+
+  </div>
+
+</section>

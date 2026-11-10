@@ -1,0 +1,45 @@
+@if (loader.booting()) {
+  <div class="intro" #root role="status" aria-live="polite" [attr.aria-label]="'Loading SPUNI, ' + percent() + ' percent'">
+    <div class="flap flap-top"><span class="grain"></span></div>
+    <div class="flap flap-bottom"><span class="grain"></span></div>
+    <div class="seam" aria-hidden="true"></div>
+
+    <div class="stage">
+      <div class="tag" aria-hidden="true">
+        <span class="string"></span>
+        <div class="tag-body">
+          <img src="/assets/logo.png" alt="" width="44" height="44" />
+          <span>Handmade</span>
+          <b>N° 026</b>
+        </div>
+      </div>
+
+      <h1 class="word" [class.ready]="ready()" aria-hidden="true">
+        @for (ch of letters(); track $index) {
+          <span class="l-wrap"><span class="l" [class.locked]="locked()[$index]">{{ ch }}</span></span>
+        }
+      </h1>
+
+      <p class="tease" aria-hidden="true">
+        @for (k of [teaserKey()]; track k) {
+          <span class="tease-line">{{ ready() ? 'Your bag is ready' : teaser() }}<i>…</i></span>
+        }
+      </p>
+
+      <div class="thread" aria-hidden="true">
+        <svg viewBox="0 0 1000 20" preserveAspectRatio="none">
+          <path class="stitch-path" d="M0 10 H1000" pathLength="1000" />
+        </svg>
+        <span class="needle"><i class="bi bi-scissors"></i></span>
+      </div>
+
+      <div class="meta">
+        <span class="pct">{{ percent().toString().padStart(3, '0') }}<small>%</small></span>
+        <span class="chip-g">Gen-Leather drop · Live soon</span>
+        <span class="est">Est. Chennai</span>
+      </div>
+    </div>
+
+    <button type="button" class="skip" (click)="skip()">Skip intro <i class="bi bi-arrow-right"></i></button>
+  </div>
+}

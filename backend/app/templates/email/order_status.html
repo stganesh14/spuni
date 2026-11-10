@@ -1,0 +1,13 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import button, items_table %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">Order {{ number }}</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">{{ headline }}</h1>
+<p>{{ body }}</p>
+{% if tracking_number %}
+<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;padding:12px 16px;background:#eee3d2;">Courier: <strong>{{ courier or "Our delivery partner" }}</strong><br>Tracking number: <strong>{{ tracking_number }}</strong>{% if tracking_url %}<br><a href="{{ tracking_url }}" style="color:#641f1f;">Track your parcel</a>{% endif %}</p>
+{% endif %}
+{% if note %}<p style="font-style:italic;color:#52382a;">“{{ note }}”</p>{% endif %}
+{{ items_table(items) }}
+{{ button(storefront_url ~ "/account/orders/" ~ number, "View order") }}
+{% endblock %}

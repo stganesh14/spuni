@@ -1,0 +1,160 @@
+<div class="page pdp">
+  @if (state().loading) {
+    <div class="container layout">
+      <div class="skeleton sk-media"></div>
+      <div class="sk-copy"><div class="skeleton l1"></div><div class="skeleton l2"></div><div class="skeleton l3"></div></div>
+    </div>
+  } @else if (state().notFound) {
+    <div class="container">
+      <app-empty-state icon="bi-bag-x" title="This piece isn't available"
+                       text="It may have sold out or moved. Here's everything else we make." actionLink="/shop" />
+    </div>
+  } @else if (state().error) {
+    <div class="container">
+      <app-empty-state icon="bi-wifi-off" title="We couldn't load this piece" text="Please refresh the page in a moment." />
+    </div>
+  } @else if (p(); as p) {
+    <div class="container">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a routerLink="/">Home</a><span>/</span>
+        <a [routerLink]="['/category', p.category.slug]">{{ p.category.name }}</a><span>/</span>
+        <span aria-current="page">{{ p.name }}</span>
+      </nav>
+    </div>
+
+    <div class="container layout">
+      <section class="gallery" aria-label="Product images">
+        <div class="main">
+          @for (img of images(); track img.url; let i = $index) {
+            <button type="button" class="slide" [class.on]="i === active()" (click)="openZoom($event, i)"
+                    [attr.aria-hidden]="i !== active()" [attr.tabindex]="i === active() ? 0 : -1"
+                    [attr.aria-label]="'Zoom image ' + (i + 1) + ' of ' + images().length">
+              <img [src]="img.url" [alt]="img.alt" [attr.loading]="i === 0 ? 'eager' : 'lazy'" decoding="async" />
+            </button>
+          }
+          @if (!images().length) { <div class="placeholder">SPUNI</div> }
+          <span class="zoom-tip"><i class="bi bi-zoom-in"></i> Tap to zoom</span>
+          @if (discount() > 0) { <span class="badge off">-{{ discount() }}%</span> }
+        </div>
+        @if (images().length > 1) {
+          <div class="thumbs" role="tablist" aria-label="Choose image">
+            @for (img of images(); track img.url; let i = $index) {
+              <button type="button" role="tab" [class.on]="i === active()" (click)="select(i)"
+                      [attr.aria-selected]="i === active()" [attr.aria-label]="'Show image ' + (i + 1)">
+                <img [src]="img.url" alt="" loading="lazy" />
+              </button>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="info">
+        <div class="tags">
+          @if (p.badge) { <span class="badge">{{ p.badge }}</span> }
+          @if (p.is_customizable) { <span class="badge alt"><i class="bi bi-magic"></i> Customisable</span> }
+        </div>
+        <h1 class="name">{{ p.name }}</h1>
+        @if (p.short_description) { <p class="lead">{{ p.short_description }}</p> }
+
+        <div class="price">
+          <strong>{{ p.price_paise | inr }}</strong>
+          @if (p.compare_at_price_paise) { <s>{{ p.compare_at_price_paise | inr }}</s> }
+          <small>Inclusive of all taxes</small>
+        </div>
+
+        <p class="stock" [class]="'stock ' + p.stock_status">
+          <span class="dot"></span>
+          @switch (p.stock_status) {
+            @case ('in_stock') { In stock, ready to ship }
+            @case ('low_stock') { Only {{ p.available_quantity }} left, order soon }
+            @default { Sold out for now }
+          }
+        </p>
+
+        @if (p.stock_status !== 'out_of_stock') {
+          <div class="buy">
+            <div class="qty" role="group" aria-label="Quantity">
+              <button type="button" (click)="changeQty(-1)" [disabled]="qty() <= 1" aria-label="Decrease quantity">−</button>
+              <span aria-live="polite">{{ qty() }}</span>
+              <button type="button" (click)="changeQty(1)" [disabled]="qty() >= maxQty()" aria-label="Increase quantity">+</button>
+            </div>
+            <button type="button" class="btn btn-primary add" (click)="addToBag()" appMagnetic="0.15">
+              @if (added()) { <i class="bi bi-check2"></i> Added to bag } @else { <i class="bi bi-bag-plus"></i> Add to bag }
+            </button>
+            <button type="button" class="icon-btn heart" [class.on]="saved()" (click)="wishlist.toggle(p)"
+                    [attr.aria-pressed]="saved()" [attr.aria-label]="saved() ? 'Remove from wishlist' : 'Save to wishlist'">
+              <i class="bi" [class.bi-heart-fill]="saved()" [class.bi-heart]="!saved()"></i>
+            </button>
+          </div>
+          <button type="button" class="btn btn-block buy-now" (click)="buyNow()">Buy it now</button>
+        } @else {
+          <a class="btn btn-block" [routerLink]="['/category', p.category.slug]">See similar pieces</a>
+        }
+
+        <ul class="perks">
+          @if (earn() > 0) { <li><i class="bi bi-wallet2"></i> Earn <b>{{ earn() | inr }}</b> in your SPUNI Wallet</li> }
+          @if (store.info()?.free_shipping_threshold_paise) {
+            <li><i class="bi bi-truck"></i> Free shipping over {{ store.info()!.free_shipping_threshold_paise | inr }}</li>
+          }
+          <li><i class="bi bi-arrow-repeat"></i> Easy 7-day returns</li>
+          <li><i class="bi bi-gift"></i> Gift wrap and a handwritten note at checkout</li>
+        </ul>
+
+        @if (p.is_customizable) {
+          <a class="custom" routerLink="/customization" [queryParams]="{ mode: 'catalog', product: p.slug }">
+            <i class="bi bi-magic"></i>
+            <span><b>Make it yours</b><small>Add initials, change thread colour or hardware</small></span>
+            <i class="bi bi-arrow-right"></i>
+          </a>
+        }
+
+        <div class="acc">
+          @for (s of [
+            { k: 'details', t: 'The details' },
+            { k: 'specs', t: 'Materials & size' },
+            { k: 'care', t: 'Care' },
+            { k: 'delivery', t: 'Delivery & returns' }
+          ]; track s.k) {
+            <div class="acc-item" [class.open]="open() === s.k">
+              <button type="button" (click)="toggle(s.k)" [attr.aria-expanded]="open() === s.k" [attr.aria-controls]="'acc-' + s.k">
+                {{ s.t }} <i class="bi bi-plus-lg"></i>
+              </button>
+              <div class="acc-body" [id]="'acc-' + s.k" role="region">
+                <div>
+                  @switch (s.k) {
+                    @case ('details') { <p>{{ p.description || p.short_description }}</p> }
+                    @case ('specs') {
+                      <dl>
+                        @if (p.material) { <dt>Material</dt><dd>{{ p.material }}</dd> }
+                        @if (p.color) { <dt>Colour</dt><dd>{{ p.color }}</dd> }
+                        @if (p.dimensions) { <dt>Size</dt><dd>{{ p.dimensions }}</dd> }
+                        @if (p.weight_grams) { <dt>Weight</dt><dd>{{ p.weight_grams }} g</dd> }
+                        <dt>SKU</dt><dd>{{ p.sku }}</dd>
+                      </dl>
+                    }
+                    @case ('care') { <p>{{ p.care_instructions || 'Wipe clean with a soft, dry cloth and store in the dust bag.' }}</p> }
+                    @default {
+                      <p>Dispatched in 1 to 2 working days and delivered across India in 3 to 7 days, with tracking by email.
+                        Unused pieces can be returned within 7 days of delivery. <a routerLink="/returns">Read the returns policy</a>.</p>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+
+    @if (p.related.length) {
+      <app-bestsellers [products]="p.related" eyebrow="Complete the look" heading="You may also love" />
+    }
+
+    @if (p.stock_status !== 'out_of_stock') {
+      <div class="sticky-buy" aria-hidden="true">
+        <span><b>{{ p.name }}</b><small>{{ p.price_paise | inr }}</small></span>
+        <button type="button" class="btn btn-primary btn-sm" tabindex="-1" (click)="addToBag()">Add to bag</button>
+      </div>
+    }
+  }
+</div>

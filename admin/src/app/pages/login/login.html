@@ -1,0 +1,91 @@
+<div class="login">
+  <section class="login-art" aria-hidden="true">
+    <div class="art-inner">
+      <span class="mark">S</span>
+      <p class="art-title">SPUNI</p>
+      <p class="art-sub">Vegan leather, handcrafted in Chennai</p>
+      <p class="art-quote">“Objects with a soul, made to age beautifully.”</p>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <p class="eyebrow">Atelier admin</p>
+      @if (step() === 'email') {
+        <h1>Sign in</h1>
+        <p class="muted">We'll email a 6-digit code to your admin address. No password needed.</p>
+        <form (submit)="$event.preventDefault(); sendCode()" novalidate>
+          <div class="field" [class.invalid]="email.touched && email.invalid">
+            <label for="login-email">Admin email</label>
+            <input
+              id="login-email"
+              class="input"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              autofocus
+              [formControl]="email"
+              [attr.aria-invalid]="email.touched && email.invalid"
+              aria-describedby="login-email-error"
+            />
+            @if (email.touched && email.invalid) {
+              <p class="field-error" id="login-email-error">Enter a valid email address.</p>
+            }
+          </div>
+          @if (error()) {
+            <p class="form-alert" role="alert">{{ error() }}</p>
+          }
+          <button type="submit" class="btn btn-primary block" [disabled]="busy()">
+            {{ busy() ? 'Sending code…' : 'Email me a code' }}
+          </button>
+        </form>
+      } @else {
+        <h1>Enter your code</h1>
+        <p class="muted">
+          We sent a 6-digit code to <strong>{{ sentTo() }}</strong>. It expires in 10 minutes.
+        </p>
+        @if (info()) {
+          <p class="callout small" role="status">{{ info() }}</p>
+        }
+        <form (submit)="$event.preventDefault(); verify()" novalidate>
+          <fieldset class="otp" [disabled]="busy()">
+            <legend class="visually-hidden">6-digit sign-in code</legend>
+            @for (d of digits(); track $index; let i = $index) {
+              <input
+                #digit
+                class="otp-digit"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="6"
+                [attr.autocomplete]="i === 0 ? 'one-time-code' : 'off'"
+                [attr.aria-label]="'Digit ' + (i + 1) + ' of 6'"
+                (input)="onDigitInput(i, $event)"
+                (keydown)="onDigitKey(i, $event)"
+                (paste)="onPaste(i, $event)"
+                (focus)="$any($event.target).select()"
+              />
+            }
+          </fieldset>
+          @if (error()) {
+            <p class="form-alert" role="alert">{{ error() }}</p>
+          }
+          <button type="submit" class="btn btn-primary block" [disabled]="busy() || code().length !== 6">
+            {{ busy() ? 'Checking…' : 'Sign in' }}
+          </button>
+        </form>
+        <div class="login-links">
+          <span>
+            Didn't get it?
+            @if (cooldown() > 0) {
+              <span class="muted" aria-live="polite">Resend in {{ cooldown() }}s</span>
+            } @else {
+              <button type="button" class="btn-link" [disabled]="busy()" (click)="resend()">Send a new code</button>
+            }
+          </span>
+          <button type="button" class="btn-link" (click)="useDifferentEmail()">Use a different email</button>
+        </div>
+      }
+    </div>
+  </section>
+</div>

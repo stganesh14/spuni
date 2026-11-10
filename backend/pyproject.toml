@@ -1,0 +1,27 @@
+[project]
+name = "spuni-api"
+version = "1.0.0"
+description = "SPUNI leather storefront and admin API"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101", "B008", "S311", "S105", "UP046"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E501"]
+"alembic/versions/*" = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+known-first-party = ["app"]

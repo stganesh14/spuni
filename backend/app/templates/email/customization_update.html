@@ -1,0 +1,9 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import button %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">Customization request {{ reference }}</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">{{ headline }}</h1>
+{% if quoted_price_paise %}<p>Our quote for your piece: <strong>{{ quoted_price_paise | rupees }}</strong>.</p>{% endif %}
+{% if note %}<p style="padding:14px 18px;background:#eee3d2;border-left:3px solid #9a7853;">{{ note }}</p>{% endif %}
+{{ button(storefront_url ~ "/account/customizations", "View request") }}
+{% endblock %}

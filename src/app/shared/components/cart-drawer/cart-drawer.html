@@ -1,0 +1,78 @@
+<div class="scrim" [class.open]="cart.drawerOpen()" (click)="close()" aria-hidden="true"></div>
+<aside
+  #panel
+  class="drawer"
+  [class.open]="cart.drawerOpen()"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="bag-title"
+  [attr.aria-hidden]="!cart.drawerOpen()"
+  [attr.inert]="cart.drawerOpen() ? null : ''"
+  (keydown.escape)="close()"
+>
+  <header class="head">
+    <div>
+      <span class="eyebrow">Your bag</span>
+      <h2 id="bag-title">{{ cart.count() }} {{ cart.count() === 1 ? 'piece' : 'pieces' }}</h2>
+    </div>
+    <button type="button" class="icon-btn" (click)="close()" aria-label="Close bag"><i class="bi bi-x-lg"></i></button>
+  </header>
+
+  @if (cart.items().length) {
+    @if (threshold()) {
+      <div class="ship">
+        @if (toFree() > 0) {
+          <p>You're <strong>{{ toFree() | inr }}</strong> away from free shipping</p>
+        } @else {
+          <p><i class="bi bi-truck"></i> Free shipping unlocked</p>
+        }
+        <div class="bar"><span [style.width.%]="freeProgress()"></span></div>
+      </div>
+    }
+
+    <ul class="lines">
+      @for (item of cart.items(); track item.product_id) {
+        <li class="line">
+          <a class="thumb" [routerLink]="['/product', item.slug]">
+            @if (item.image_url) { <img [src]="item.image_url" [alt]="item.name" loading="lazy" /> }
+          </a>
+          <div class="meta">
+            <a class="name" [routerLink]="['/product', item.slug]">{{ item.name }}</a>
+            <span class="price">{{ item.price_paise * item.quantity | inr }}</span>
+            @if (issues().get(item.product_id)?.issue; as issue) {
+              <span class="issue"><i class="bi bi-exclamation-triangle"></i> {{ issue }}</span>
+            }
+            <div class="row">
+              <div class="stepper" role="group" [attr.aria-label]="'Quantity for ' + item.name">
+                <button type="button" (click)="qty(item.product_id, item.quantity - 1)" aria-label="Decrease"><i class="bi bi-dash"></i></button>
+                <span>{{ item.quantity }}</span>
+                <button type="button" (click)="qty(item.product_id, item.quantity + 1)" [disabled]="item.quantity >= maxQty" aria-label="Increase"><i class="bi bi-plus"></i></button>
+              </div>
+              <button type="button" class="remove" (click)="cart.remove(item.product_id)">Remove</button>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <footer class="foot">
+      <div class="sum">
+        <span>Subtotal</span>
+        <strong>{{ subtotal() | inr }}</strong>
+      </div>
+      <p class="note">Shipping, gift wrap and SPUNI Wallet points are applied at checkout.</p>
+      @if (quote()?.has_issues) {
+        <p class="issue">Some items need attention before checkout.</p>
+      }
+      <a class="btn btn-primary btn-block" routerLink="/checkout" [class.is-disabled]="quote()?.has_issues">Checkout <i class="bi bi-arrow-right"></i></a>
+      <a class="btn btn-ghost btn-block" routerLink="/cart">View bag</a>
+    </footer>
+  } @else {
+    <div class="empty">
+      <div class="bag-art" aria-hidden="true"><i class="bi bi-bag-heart"></i></div>
+      <h3>Your bag is feeling light.</h3>
+      <p>Pieces you add will wait for you here.</p>
+      <a class="btn" routerLink="/shop">Start exploring</a>
+    </div>
+  }
+</aside>

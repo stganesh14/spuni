@@ -1,0 +1,6 @@
+{% extends "_base.html" %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">Gift card sent</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">Your gift is on its way to {{ recipient_name }}.</h1>
+<p>We have emailed a <strong>{{ amount_paise | rupees }}</strong> SPUNI gift card to {{ recipient_email }} (order {{ number }}). The code ends in <strong>{{ code_last4 }}</strong>.</p>
+{% endblock %}

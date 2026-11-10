@@ -1,0 +1,206 @@
+@use 'mixins' as *;
+
+.zv {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(82, 56, 42, 0.92), rgba(20, 12, 8, 0.97) 70%);
+  backdrop-filter: blur(10px);
+  color: var(--cream);
+  visibility: hidden;
+  opacity: 0;
+}
+
+.zv-top,
+.zv-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px var(--gutter);
+  position: relative;
+  z-index: 2;
+}
+
+.zv-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.zv-kicker {
+  @include eyebrow;
+  color: var(--gold-light);
+}
+
+.zv-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zv-link {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(238, 227, 210, 0.4);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: background 0.3s, color 0.3s;
+
+  @include up(576px) { display: inline-flex; }
+  @include hover { background: var(--cream); color: var(--brown); }
+}
+
+.zv-close {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(238, 227, 210, 0.4);
+  color: var(--cream);
+  transition: transform 0.4s var(--ease-out), background 0.3s;
+
+  @include hover { transform: rotate(90deg); background: var(--burgundy); }
+}
+
+.zv-stage {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: zoom-in;
+  user-select: none;
+
+  &.is-zoomed { cursor: grab; }
+  &.is-dragging { cursor: grabbing; }
+}
+
+.zv-pan {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  max-height: 100%;
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+
+  .is-dragging & { transition: none; }
+}
+
+.zv-pan img {
+  max-width: min(92vw, 1100px);
+  max-height: calc(100dvh - 210px);
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 40px 120px -40px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+
+  &.is-loaded { opacity: 1; }
+}
+
+.zv-spinner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  color: var(--gold-light);
+}
+
+.zv-nav {
+  position: absolute;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+  border-radius: 50%;
+  background: rgba(238, 227, 210, 0.12);
+  border: 1px solid rgba(238, 227, 210, 0.3);
+  color: var(--cream);
+  font-size: 1.1rem;
+  transition: background 0.3s, transform 0.3s;
+
+  &.prev { left: var(--gutter); }
+  &.next { right: var(--gutter); }
+
+  @include hover { background: var(--burgundy); transform: scale(1.08); }
+  @include down(576px) { display: none; }
+}
+
+.zv-bottom {
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.zv-zoom {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(238, 227, 210, 0.35);
+  border-radius: 999px;
+  overflow: hidden;
+
+  button {
+    min-width: 46px;
+    height: 44px;
+    color: var(--cream);
+    transition: background 0.25s;
+
+    &:disabled { opacity: 0.35; }
+    @include hover { background: rgba(238, 227, 210, 0.14); }
+  }
+}
+
+.zv-percent {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  min-width: 72px !important;
+  border-inline: 1px solid rgba(238, 227, 210, 0.2) !important;
+}
+
+.zv-thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 2px;
+
+  button {
+    flex: none;
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    overflow: hidden;
+    opacity: 0.5;
+    border: 1px solid transparent;
+    transition: opacity 0.3s, border-color 0.3s, transform 0.3s;
+
+    &.active { opacity: 1; border-color: var(--gold-light); transform: translateY(-2px); }
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+}
+
+.zv-hint {
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: rgba(238, 227, 210, 0.55);
+}

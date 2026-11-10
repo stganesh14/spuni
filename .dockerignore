@@ -1,0 +1,13 @@
+﻿.git
+.gitignore
+.env
+__pycache__/
+node_modules/
+admin/node_modules/
+backend/.venv/
+backend/.pytest_cache/
+backend/media/
+dist/
+admin/dist/
+.npm/
+.vscode/

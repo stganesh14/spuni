@@ -1,0 +1,118 @@
+<app-page-header title="Products" eyebrow="Catalogue" [subtitle]="result() ? result()!.total + ' product(s)' : ''">
+  <a routerLink="/products/new" class="btn btn-primary">+ New product</a>
+</app-page-header>
+
+<div class="toolbar" role="search">
+  <label class="visually-hidden" for="product-search">Search products</label>
+  <input
+    id="product-search"
+    class="input search"
+    type="search"
+    placeholder="Search name, SKU or slug…"
+    maxlength="80"
+    [value]="q()"
+    (input)="onSearch($any($event.target).value)"
+  />
+  <label class="visually-hidden" for="product-category">Category</label>
+  <select id="product-category" class="select" [value]="categoryId() ?? ''" (change)="setCategory($any($event.target).value)">
+    <option value="">All categories</option>
+    @for (c of categories(); track c.id) {
+      <option [value]="c.id" [selected]="c.id === categoryId()">{{ c.name }}</option>
+    }
+  </select>
+  <div class="tabs" role="group" aria-label="Status filter">
+    @for (s of statuses; track s.value) {
+      <button type="button" [attr.aria-pressed]="status() === s.value" (click)="setStatus(s.value)">{{ s.label }}</button>
+    }
+  </div>
+</div>
+
+<section class="card card-flush">
+  <app-state
+    [loading]="loading() && !result()"
+    [error]="error()"
+    [empty]="!!result() && result()!.items.length === 0"
+    emptyTitle="No products found"
+    emptyText="Try a different search or filter, or add a new product."
+    (retry)="load()"
+  />
+  @if (result(); as r) {
+    @if (r.items.length && !error()) {
+      <div class="table-wrap" [style.opacity]="loading() ? 0.6 : 1">
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <th scope="col">Product</th>
+              <th scope="col">Category</th>
+              <th scope="col" class="num">Price</th>
+              <th scope="col">Stock</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="actions"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of r.items; track p.id) {
+              <tr>
+                <td class="primary-cell" data-label="">
+                  <div class="cell-main">
+                    @if (p.images[0]; as img) {
+                      <img class="thumb" [src]="img.url | media" [alt]="" loading="lazy" />
+                    } @else {
+                      <span class="thumb" aria-hidden="true"></span>
+                    }
+                    <div>
+                      <a class="row-link" [routerLink]="['/products', p.id]">{{ p.name }}</a>
+                      <span class="muted small mono">{{ p.sku }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Category">{{ p.category_name }}</td>
+                <td class="num" data-label="Price">
+                  {{ p.price_paise | money }}
+                  @if (p.compare_at_price_paise) {
+                    <div class="muted small"><s>{{ p.compare_at_price_paise | money }}</s></div>
+                  }
+                </td>
+                <td data-label="Stock">
+                  <form class="inline-stock" (submit)="$event.preventDefault(); saveStock(p)">
+                    <label class="visually-hidden" [attr.for]="'stock-' + p.id">Stock for {{ p.name }}</label>
+                    <input
+                      [id]="'stock-' + p.id"
+                      class="input"
+                      type="number"
+                      min="0"
+                      max="1000000"
+                      inputmode="numeric"
+                      [value]="stockValue(p)"
+                      (input)="editStock(p, $any($event.target).value)"
+                    />
+                    @if (stockDirty(p)) {
+                      <button type="submit" class="btn btn-primary btn-sm" [disabled]="savingStock() === p.id">
+                        {{ savingStock() === p.id ? '…' : 'Save' }}
+                      </button>
+                    } @else if (p.stock === 0) {
+                      <app-status value="out_of_stock" text="Out" />
+                    } @else if (p.stock <= 5) {
+                      <app-status value="low_stock" text="Low" />
+                    }
+                  </form>
+                </td>
+                <td data-label="Status">
+                  <app-status [value]="p.is_active ? 'active' : 'inactive'" />
+                  @if (p.is_featured) {
+                    <span class="badge" data-tone="gold">Featured</span>
+                  }
+                </td>
+                <td class="actions" data-label="">
+                  <a class="btn btn-ghost btn-sm" [routerLink]="['/products', p.id]">Edit</a>
+                  <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="remove(p)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager [page]="r.page" [pages]="r.pages" [total]="r.total" [pageSize]="r.page_size" (go)="goTo($event)" />
+    }
+  }
+</section>

@@ -1,0 +1,118 @@
+<div class="page shop">
+  <header class="hero-band container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a routerLink="/">Home</a><span>/</span>
+      @if (slug()) { <a routerLink="/shop">Shop</a><span>/</span><span aria-current="page">{{ category()?.name ?? slug() }}</span> }
+      @else { <span aria-current="page">Shop</span> }
+    </nav>
+
+    <div class="band" [class.has-image]="category()?.image_url">
+      <div class="band-copy">
+        <span class="eyebrow">{{ state().loading ? 'Loading' : total() + (total() === 1 ? ' piece' : ' pieces') }}</span>
+        @for (h of [heading()]; track h) {
+          <h1 class="display" appRevealText="chars">{{ h }}</h1>
+        }
+        @if (category()?.tagline) { <p class="lead">{{ category()!.tagline }}</p> }
+        @else if (!slug()) { <p class="lead">Cut, stitched and burnished by hand in Chennai. Find the piece that becomes part of your story.</p> }
+      </div>
+      @if (category()?.image_url) {
+        <div class="band-media">
+          <img [src]="category()!.image_url" [alt]="category()!.name" [appZoomable]="category()!.image_url"
+               [zoomTitle]="category()!.name" />
+        </div>
+      }
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="cats" role="navigation" aria-label="Categories">
+      <a class="chip" routerLink="/shop" [queryParams]="{ gender: genderValue() }" [class.active]="!slug()">All</a>
+      @for (c of categories(); track c.id) {
+        <a class="chip" [routerLink]="['/category', c.slug]" [queryParams]="{ gender: genderValue() }"
+           [class.active]="slug() === c.slug">{{ c.name }}</a>
+      }
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn btn-ghost btn-sm filter-toggle" (click)="filtersOpen.set(!filtersOpen())"
+              [attr.aria-expanded]="filtersOpen()" aria-controls="filters">
+        <i class="bi bi-sliders"></i> Filters @if (activeFilters()) { <span class="n">{{ activeFilters() }}</span> }
+      </button>
+      <label class="sort">
+        <span>Sort</span>
+        <select class="select" [value]="sortValue()" (change)="setParam('sort', $any($event.target).value)">
+          @for (s of sorts; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+        </select>
+      </label>
+    </div>
+
+    <div class="layout">
+      <aside id="filters" class="filters" [class.open]="filtersOpen()" aria-label="Filters">
+        <fieldset>
+          <legend>For</legend>
+          @for (g of [{ v: null, l: 'Everyone' }, { v: 'men', l: 'Him' }, { v: 'women', l: 'Her' }]; track g.l) {
+            <label class="check"><input type="radio" name="gender" [checked]="genderValue() === g.v"
+                   (change)="setParam('gender', g.v)" /> <span>{{ g.l }}</span></label>
+          }
+        </fieldset>
+        <fieldset>
+          <legend>Price</legend>
+          <label class="check"><input type="radio" name="price" [checked]="!priceValue()" (change)="setParam('price', null)" />
+            <span>Any price</span></label>
+          @for (p of prices; track p.key) {
+            <label class="check"><input type="radio" name="price" [checked]="priceValue()?.key === p.key"
+                   (change)="setParam('price', p.key)" /> <span>{{ p.label }}</span></label>
+          }
+        </fieldset>
+        <fieldset>
+          <legend>Availability</legend>
+          <label class="check"><input type="checkbox" [checked]="inStockOnly()"
+                 (change)="setParam('stock', $any($event.target).checked ? '1' : null)" /> <span>In stock only</span></label>
+        </fieldset>
+        @if (activeFilters()) {
+          <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
+        }
+      </aside>
+
+      <section class="results" aria-live="polite" [attr.aria-busy]="state().loading">
+        @if (categoryMissing()) {
+          <app-empty-state icon="bi-compass" title="This collection has moved"
+                           text="We couldn't find that category. Explore everything we make instead." actionLink="/shop" />
+        } @else if (state().error) {
+          <app-empty-state icon="bi-wifi-off" title="We couldn't load the collection"
+                           text="Please check your connection and try again." actionLink="/shop" actionLabel="Try again" />
+        } @else if (state().loading) {
+          <div class="grid">
+            @for (n of [1, 2, 3, 4, 5, 6]; track n) { <div class="sk skeleton"></div> }
+          </div>
+        } @else if (!products().length) {
+          <app-empty-state icon="bi-search" title="Nothing matches just yet"
+                           text="Try removing a filter or searching for something else.">
+            @if (activeFilters()) { <button type="button" class="btn" (click)="clearFilters()">Clear filters</button> }
+          </app-empty-state>
+        } @else {
+          <div class="grid">
+            @for (p of products(); track p.id; let i = $index) {
+              <div class="float-card" [style.--i]="i" [style.--dur.s]="5 + (i % 4) * 0.7">
+                <app-product-card [product]="p" [index]="i" [eager]="i < 3" />
+              </div>
+            }
+          </div>
+
+          @if (pages() > 1) {
+            <nav class="pager" aria-label="Pages">
+              <button type="button" class="icon-btn" (click)="goToPage(page() - 1)" [disabled]="page() <= 1"
+                      aria-label="Previous page"><i class="bi bi-arrow-left"></i></button>
+              @for (n of pageList(); track n) {
+                <button type="button" class="pg" [class.on]="n === page()" (click)="goToPage(n)"
+                        [attr.aria-current]="n === page() ? 'page' : null">{{ n }}</button>
+              }
+              <button type="button" class="icon-btn" (click)="goToPage(page() + 1)" [disabled]="page() >= pages()"
+                      aria-label="Next page"><i class="bi bi-arrow-right"></i></button>
+            </nav>
+          }
+        }
+      </section>
+    </div>
+  </div>
+</div>

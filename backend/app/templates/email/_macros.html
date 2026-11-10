@@ -1,0 +1,15 @@
+{% macro button(url, label) -%}
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="background:#641f1f;">
+<a href="{{ url }}" style="display:inline-block;padding:13px 28px;color:#eee3d2;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;">{{ label }}</a>
+</td></tr></table>
+{%- endmacro %}
+{% macro items_table(items, hide_prices=False) -%}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:16px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;">
+{% for item in items %}
+<tr>
+<td style="padding:10px 0;border-bottom:1px solid #e3d6c3;">{{ item.name }} <span style="color:#7a6250;">&times; {{ item.quantity }}</span></td>
+{% if not hide_prices %}<td align="right" style="padding:10px 0;border-bottom:1px solid #e3d6c3;">{{ item.line_total_paise | rupees }}</td>{% endif %}
+</tr>
+{% endfor %}
+</table>
+{%- endmacro %}

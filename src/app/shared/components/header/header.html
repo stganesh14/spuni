@@ -1,0 +1,231 @@
+<div class="announce" [class.gone]="scrolled()" aria-label="Store announcements">
+  <div class="announce-track">
+    @for (n of [0, 1]; track n) {
+      <span [attr.aria-hidden]="n === 1 ? 'true' : null">
+        @if (freeShipping()) { <span>Free shipping over {{ freeShipping() | inr }}</span><i>◆</i> }
+        <span>Earn {{ earnPercent() }}% back in your SPUNI Wallet</span><i>◆</i>
+        <span>Handcrafted vegan leather, Chennai</span><i>◆</i>
+        <span>Free monogramming on customisable pieces</span><i>◆</i>
+      </span>
+    }
+  </div>
+</div>
+
+<header
+  class="bar"
+  [class.scrolled]="scrolled()"
+  [class.solid]="panel() || searchOpen()"
+  (keydown.escape)="onEscape()"
+>
+  <div class="bar-inner">
+    <button
+      type="button"
+      class="burger"
+      [class.open]="mobileOpen()"
+      (click)="toggleMobile()"
+      [attr.aria-expanded]="mobileOpen()"
+      aria-controls="mobile-menu"
+      [attr.aria-label]="mobileOpen() ? 'Close menu' : 'Open menu'"
+    >
+      <span></span><span></span>
+    </button>
+
+    <nav class="nav" aria-label="Main">
+      <div class="nav-item" (mouseenter)="openPanel('shop')" (mouseleave)="scheduleClose()">
+        <a routerLink="/shop" routerLinkActive="active" class="nav-link" [attr.aria-expanded]="panel() === 'shop'"
+           (keydown.arrowDown)="togglePanel('shop', $event)">Shop <i class="bi bi-chevron-down"></i></a>
+      </div>
+      <div class="nav-item" (mouseenter)="openPanel('men')" (mouseleave)="scheduleClose()">
+        <a routerLink="/shop" [queryParams]="{ gender: 'men' }" class="nav-link" [attr.aria-expanded]="panel() === 'men'"
+           (keydown.arrowDown)="togglePanel('men', $event)">Men <i class="bi bi-chevron-down"></i></a>
+      </div>
+      <div class="nav-item" (mouseenter)="openPanel('women')" (mouseleave)="scheduleClose()">
+        <a routerLink="/shop" [queryParams]="{ gender: 'women' }" class="nav-link"
+           [attr.aria-expanded]="panel() === 'women'" (keydown.arrowDown)="togglePanel('women', $event)">
+          Women <i class="bi bi-chevron-down"></i></a>
+      </div>
+      <a routerLink="/whats-new" routerLinkActive="active" class="nav-link">What's New <sup class="dot"></sup></a>
+      <a routerLink="/gift" routerLinkActive="active" class="nav-link">Gifting</a>
+      <a routerLink="/customization" routerLinkActive="active" class="nav-link">Customise</a>
+    </nav>
+
+    <a routerLink="/" class="brand" aria-label="SPUNI home">
+      <img src="/assets/logo.png" alt="" width="40" height="40" />
+      <span class="brand-word">SPUNI</span>
+      <span class="brand-sub">Leathers · Est. Chennai</span>
+    </a>
+
+    <div class="actions">
+      <button type="button" class="act" (click)="openSearch()" aria-label="Search products">
+        <i class="bi bi-search"></i>
+      </button>
+
+      <a class="wallet" [routerLink]="auth.isLoggedIn() ? '/account/wallet' : '/login'"
+         [queryParams]="auth.isLoggedIn() ? null : { returnUrl: '/account/wallet' }"
+         [attr.aria-label]="'SPUNI Wallet' + (store.walletBalance() !== null ? ', balance ' + (store.walletBalance()! | inr) : '')"
+         appMagnetic="0.2">
+        <i class="bi bi-wallet2"></i>
+        <span class="wallet-copy">
+          <small>Wallet</small>
+          <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | inr) : 'Earn ' + earnPercent() + '%' }}</b>
+        </span>
+      </a>
+
+      <a class="act hide-sm" [routerLink]="auth.isLoggedIn() ? '/account' : '/login'"
+         [attr.aria-label]="auth.isLoggedIn() ? 'My account' : 'Sign in'">
+        <i class="bi" [class.bi-person]="!auth.isLoggedIn()" [class.bi-person-check]="auth.isLoggedIn()"></i>
+      </a>
+
+      <a class="act hide-sm" routerLink="/wishlist" [attr.aria-label]="'Wishlist, ' + wishlist.count() + ' items'">
+        <i class="bi bi-heart"></i>
+        @if (wishlist.count()) { <span class="count">{{ wishlist.count() }}</span> }
+      </a>
+
+      <button type="button" class="act" (click)="openBag()" [attr.aria-label]="'Bag, ' + cart.count() + ' items'">
+        <i class="bi bi-bag" #bagIcon></i>
+        @if (cart.count()) { <span class="count">{{ cart.count() }}</span> }
+      </button>
+    </div>
+  </div>
+
+  <!-- Mega menu -->
+  <div class="mega" [class.open]="panel() !== null" (mouseenter)="openPanel(panel())" (mouseleave)="scheduleClose()"
+       [attr.aria-hidden]="panel() === null" [attr.inert]="panel() === null ? '' : null">
+    <div class="mega-inner">
+      @if (panel() === 'shop') {
+        <div class="mega-cols">
+          @for (c of categories(); track c.slug; let i = $index) {
+            <div class="mega-col" [style.--i]="i">
+              <a class="mega-head" [routerLink]="['/category', c.slug]">
+                <span class="num">{{ (i + 1).toString().padStart(2, '0') }}</span>{{ c.name }}
+              </a>
+              <ul>
+                @for (p of c.products.slice(0, 6); track p.slug) {
+                  <li><a [routerLink]="['/product', p.slug]">{{ p.name }}</a></li>
+                }
+              </ul>
+              <a class="mega-all" [routerLink]="['/category', c.slug]">View all <i class="bi bi-arrow-right"></i></a>
+            </div>
+          } @empty {
+            <p class="muted">Collections are loading…</p>
+          }
+        </div>
+        <div class="mega-feature">
+          @for (p of featured(); track p.id) {
+            <a class="feat" [routerLink]="['/product', p.slug]">
+              @if (p.image_url) { <img [src]="p.image_url" [alt]="p.name" loading="lazy" /> }
+              <span class="feat-copy"><small>{{ p.category.name }}</small><b>{{ p.name }}</b>
+                <em>{{ p.price_paise | inr }}</em></span>
+            </a>
+          }
+        </div>
+      } @else if (panel()) {
+        <div class="mega-cols">
+          @for (c of genderMenu(); track c.slug; let i = $index) {
+            <div class="mega-col" [style.--i]="i">
+              <a class="mega-head" [routerLink]="['/category', c.slug]" [queryParams]="{ gender: panel() }">
+                <span class="num">{{ (i + 1).toString().padStart(2, '0') }}</span>{{ c.name }}
+              </a>
+              <ul>
+                @for (p of c.products.slice(0, 6); track p.slug) {
+                  <li><a [routerLink]="['/product', p.slug]">{{ p.name }}</a></li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+        <div class="mega-feature single">
+          <a class="gender-card" routerLink="/shop" [queryParams]="{ gender: panel() }">
+            <img [src]="panel() === 'men' ? '/assets/for-him.jpeg' : '/assets/for-her.jpeg'"
+                 [alt]="panel() === 'men' ? 'Leather goods for him' : 'Leather goods for her'" loading="lazy" />
+            <span>Shop all for {{ panel() === 'men' ? 'him' : 'her' }} <i class="bi bi-arrow-up-right"></i></span>
+          </a>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search" [class.open]="searchOpen()" [attr.aria-hidden]="!searchOpen()"
+       [attr.inert]="searchOpen() ? null : ''">
+    <form class="search-form" role="search" (submit)="submitSearch($event)">
+      <i class="bi bi-search"></i>
+      <label for="site-search" class="sr-only">Search SPUNI</label>
+      <input #searchInput id="site-search" type="search" autocomplete="off" maxlength="80"
+             placeholder="Search wallets, totes, belts…" [value]="query()"
+             (input)="onQuery($any($event.target).value)" />
+      @if (searching()) { <span class="spin"></span> }
+      <button type="button" class="icon-btn" (click)="closeSearch()" aria-label="Close search">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </form>
+    <div class="search-results">
+      @if (results().length) {
+        @for (p of results(); track p.id) {
+          <a class="sr-item" [routerLink]="['/product', p.slug]">
+            @if (p.image_url) { <img [src]="p.image_url" [alt]="p.name" loading="lazy" /> }
+            <span><b>{{ p.name }}</b><small>{{ p.category.name }} · {{ p.price_paise | inr }}</small></span>
+          </a>
+        }
+        <a class="sr-all" routerLink="/shop" [queryParams]="{ q: query() }">See all results for “{{ query() }}”</a>
+      } @else if (query().trim().length >= 2 && !searching()) {
+        <p class="muted">No pieces match “{{ query() }}” yet. Try “wallet” or “bag”.</p>
+      } @else {
+        <div class="search-pop">
+          <span class="eyebrow">Popular</span>
+          @for (c of categories(); track c.slug) {
+            <a class="chip" [routerLink]="['/category', c.slug]">{{ c.name }}</a>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</header>
+<div class="scrim" [class.on]="panel() !== null || searchOpen()" (click)="panel.set(null); closeSearch()"
+     aria-hidden="true"></div>
+
+<!-- Mobile menu -->
+<aside id="mobile-menu" class="mobile" [class.open]="mobileOpen()" [attr.aria-hidden]="!mobileOpen()"
+       [attr.inert]="mobileOpen() ? null : ''" aria-label="Menu">
+  <div class="mobile-scroll" data-lenis-prevent>
+    <a class="m-item m-wallet" [routerLink]="auth.isLoggedIn() ? '/account/wallet' : '/login'">
+      <i class="bi bi-wallet2"></i>
+      <span><small>SPUNI Wallet</small>
+        <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | inr) : 'Sign in to earn ' + earnPercent() + '% back' }}</b></span>
+      <i class="bi bi-arrow-right"></i>
+    </a>
+
+    <p class="m-item m-label">Shop by category</p>
+    @for (c of categories(); track c.slug) {
+      <div class="m-item m-cat" [class.open]="mobileCategory() === c.slug">
+        <button type="button" (click)="toggleMobileCategory(c.slug)" [attr.aria-expanded]="mobileCategory() === c.slug">
+          <span>{{ c.name }}</span><i class="bi bi-plus-lg"></i>
+        </button>
+        <div class="m-sub">
+          <div>
+            @for (p of c.products.slice(0, 8); track p.slug) {
+              <a [routerLink]="['/product', p.slug]">{{ p.name }}</a>
+            }
+            <a class="m-all" [routerLink]="['/category', c.slug]">View all {{ c.name }} →</a>
+          </div>
+        </div>
+      </div>
+    }
+
+    <nav class="m-links" aria-label="Mobile">
+      <a class="m-item" routerLink="/shop">Shop all</a>
+      <a class="m-item" routerLink="/shop" [queryParams]="{ gender: 'men' }">For him</a>
+      <a class="m-item" routerLink="/shop" [queryParams]="{ gender: 'women' }">For her</a>
+      <a class="m-item" routerLink="/whats-new">What's New</a>
+      <a class="m-item" routerLink="/gift">Gift a loved one</a>
+      <a class="m-item" routerLink="/customization">Customise</a>
+    </nav>
+
+    <div class="m-item m-foot">
+      <a [routerLink]="auth.isLoggedIn() ? '/account' : '/login'">
+        <i class="bi bi-person"></i> {{ auth.isLoggedIn() ? 'My account' : 'Sign in' }}</a>
+      <a routerLink="/wishlist"><i class="bi bi-heart"></i> Wishlist ({{ wishlist.count() }})</a>
+      <a routerLink="/contact"><i class="bi bi-chat-dots"></i> Contact</a>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,219 @@
+@use 'mixins' as *;
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.gift {
+  padding: clamp(70px, 10vw, 140px) 0;
+  background:
+    radial-gradient(40% 50% at 20% 50%, rgba(100, 31, 31, 0.18), transparent 70%),
+    var(--cream);
+  overflow: hidden;
+}
+
+.grid {
+  display: grid;
+  gap: clamp(40px, 6vw, 90px);
+  align-items: center;
+
+  @include up($bp-md) { grid-template-columns: 1fr 1.1fr; }
+}
+
+.visual {
+  position: relative;
+  min-height: clamp(320px, 44vw, 500px);
+  display: grid;
+  place-items: center;
+}
+
+/* A leather piece tied up with a satin ribbon, like the box it arrives in. */
+.parcel {
+  position: relative;
+  width: min(380px, 78%);
+  aspect-ratio: 4 / 4.6;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--parchment-light);
+  box-shadow: 0 50px 80px -40px rgba(43, 27, 18, 0.75), inset 0 0 0 1px rgba(201, 166, 107, 0.35);
+  transform: rotate(-3deg);
+  animation: settle 6s ease-in-out infinite alternate;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@keyframes settle {
+  from { transform: translateY(-8px) rotate(-3deg); }
+  to { transform: translateY(8px) rotate(-1.5deg); }
+}
+
+.ribbon {
+  position: absolute;
+  background: linear-gradient(90deg, #4a1714, var(--burgundy) 30%, #8a2a24 50%, var(--burgundy) 70%, #4a1714);
+  box-shadow: 0 0 0 1px rgba(43, 27, 18, 0.2), 0 6px 14px rgba(43, 27, 18, 0.35);
+
+  &.v { top: 0; bottom: 0; left: 58%; width: 22px; }
+  &.h {
+    left: 0;
+    right: 0;
+    top: 34%;
+    height: 22px;
+    background: linear-gradient(180deg, #4a1714, var(--burgundy) 30%, #8a2a24 50%, var(--burgundy) 70%, #4a1714);
+  }
+}
+
+.bow {
+  position: absolute;
+  left: calc(58% + 11px);
+  top: calc(34% + 11px);
+  width: 0;
+  height: 0;
+
+  .loop {
+    position: absolute;
+    top: -20px;
+    width: 46px;
+    height: 40px;
+    border: 9px solid var(--burgundy);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: 0 6px 12px rgba(43, 27, 18, 0.35);
+
+    &.l { right: 2px; transform: rotate(-24deg); }
+    &.r { left: 2px; transform: rotate(24deg); }
+  }
+
+  .knot {
+    position: absolute;
+    left: -11px;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #8a2a24;
+    box-shadow: 0 3px 8px rgba(43, 27, 18, 0.45);
+  }
+}
+
+/* Handwritten gift tag on a string. */
+.tag {
+  position: absolute;
+  z-index: 2;
+  right: max(0px, calc(50% - 250px));
+  bottom: 8%;
+  width: 190px;
+  display: grid;
+  gap: 4px;
+  padding: 26px 18px 18px;
+  clip-path: polygon(14% 0, 86% 0, 100% 14%, 100% 100%, 0 100%, 0 14%);
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+  transform: rotate(6deg);
+  transform-origin: 50% 0;
+  animation: sway 4s ease-in-out infinite alternate;
+
+  .hole {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    border-radius: 50%;
+    background: var(--parchment);
+    box-shadow: inset 0 1px 2px rgba(43, 27, 18, 0.4);
+  }
+}
+
+@keyframes sway {
+  from { transform: rotate(4deg); }
+  to { transform: rotate(8deg); }
+}
+
+.tag-to {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.35rem;
+  color: var(--burgundy);
+}
+
+.tag-msg {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--brown-soft);
+}
+
+.stamp {
+  position: absolute;
+  z-index: 2;
+  left: max(0px, calc(50% - 230px));
+  top: 6%;
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px dashed var(--gold);
+  background: rgba(238, 227, 210, 0.92);
+  color: var(--brown);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  line-height: 1.5;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+}
+
+.copy {
+  .title { margin: 12px 0 14px; }
+  .lead { margin: 0 0 24px; }
+}
+
+.ways {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: grid;
+  gap: 16px;
+
+  li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  i {
+    flex: none;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--burgundy);
+    font-size: 1.15rem;
+  }
+
+  div { display: grid; }
+
+  span { color: var(--muted); font-size: 0.9rem; }
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@include reduced {
+  .parcel, .tag { animation: none; }
+}

@@ -1,0 +1,77 @@
+<div class="page login">
+  <div class="wrap container">
+    <aside class="art" aria-hidden="true">
+      <img src="/assets/carried.jpeg" alt="" />
+      <div class="art-copy">
+        <span class="eyebrow">Members</span>
+        <p>Sign in to check out, track orders, save your wishlist and spend your <b>SPUNI Wallet</b> points.</p>
+      </div>
+      <span class="stamp">No passwords.<br />Ever.</span>
+    </aside>
+
+    <section class="box panel">
+      @switch (step()) {
+        @case ('email') {
+          <span class="eyebrow">Sign in or join</span>
+          <h1 class="title">Hello <em>there.</em></h1>
+          <p class="sub">
+            @if (checkoutBound()) { Sign in to finish your order. Your bag is saved. }
+            @else { Enter your email and we'll send you a 6-digit code. No password needed. }
+          </p>
+          <form (ngSubmit)="submitEmail()" novalidate>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" class="input" type="email" name="email" [(ngModel)]="email" autocomplete="email"
+                     inputmode="email" maxlength="254" required placeholder="you@example.com" autofocus
+                     [attr.aria-invalid]="!!error()" [attr.aria-describedby]="error() ? 'login-error' : null" />
+            </div>
+            @if (error()) { <p id="login-error" class="alert error" role="alert">{{ error() }}</p> }
+            <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+              @if (busy()) { <span class="spin"></span> Sending code } @else { Email me a code <i class="bi bi-arrow-right"></i> }
+            </button>
+          </form>
+          <p class="fine">By continuing you agree to our <a routerLink="/terms">terms</a> and
+            <a routerLink="/privacy">privacy policy</a>. Browsing never needs an account.</p>
+        }
+
+        @case ('code') {
+          <span class="eyebrow">Check your inbox</span>
+          <h1 class="title">Enter your <em>code.</em></h1>
+          <p class="sub">We sent a 6-digit code to <b>{{ email }}</b>. It works for {{ expiresMinutes() }} minutes.</p>
+          <app-otp-input [invalid]="codeInvalid()" [disabled]="busy()" (completed)="verify($event)" />
+          @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+          @if (busy()) { <p class="checking"><span class="spin"></span> Checking…</p> }
+
+          <div class="resend">
+            <span>Didn't get it or lost the code?</span>
+            @if (cooldown() > 0) {
+              <span class="muted" aria-live="polite">Resend in {{ cooldownLabel() }}</span>
+            } @else {
+              <button type="button" class="link" (click)="resend()" [disabled]="busy()">Send a new code</button>
+            }
+          </div>
+          <button type="button" class="link back" (click)="changeEmail()"><i class="bi bi-arrow-left"></i> Use a different email</button>
+          <p class="fine">Check spam or promotions if it isn't in your inbox within a minute.</p>
+        }
+
+        @case ('name') {
+          <span class="eyebrow">Welcome to SPUNI</span>
+          <h1 class="title">What should we <em>call you?</em></h1>
+          <p class="sub">Your name appears on orders and gift notes.</p>
+          <form (ngSubmit)="saveName()" novalidate>
+            <div class="field">
+              <label for="name">Full name</label>
+              <input id="name" class="input" name="fullName" [(ngModel)]="fullName" autocomplete="name" maxlength="120"
+                     required autofocus />
+            </div>
+            @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+            <button class="btn btn-primary btn-block" type="submit" [disabled]="busy()">
+              @if (busy()) { <span class="spin"></span> } Continue
+            </button>
+            <button class="link skip" type="button" (click)="saveName(true)">Skip for now</button>
+          </form>
+        }
+      }
+    </section>
+  </div>
+</div>

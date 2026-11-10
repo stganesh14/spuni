@@ -1,0 +1,7 @@
+{% extends "_base.html" %}
+{% block content %}
+<p style="margin:0 0 6px 0;font-size:12px;letter-spacing:3px;color:#9a7853;text-transform:uppercase;">You are on the list</p>
+<h1 style="margin:0 0 18px 0;font-weight:normal;font-size:26px;">{{ title }}</h1>
+<p>We will email you the moment <strong>{{ title }}</strong> is released{% if launch_date %}, planned for {{ launch_date }}{% endif %}. Be among the first to carry it.</p>
+{% endblock %}
+{% block footer_extra %}<br><a href="{{ unsubscribe_url }}" style="color:#7a6250;">Stop these notifications</a>{% endblock %}

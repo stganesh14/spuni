@@ -1,0 +1,79 @@
+<footer class="footer" #root>
+  <div class="stitch" aria-hidden="true"></div>
+
+  <div class="top container">
+    <div class="col brand-col">
+      <a routerLink="/" class="brand" aria-label="SPUNI home">
+        <img src="/assets/logo.png" alt="" width="48" height="48" loading="lazy" />
+        <span>SPUNI</span>
+      </a>
+      <p class="tag">Premium vegan leather bags, wallets and travel goods, handcrafted in Chennai.
+        <em>Think leather. Think SPUNI.</em></p>
+
+      <ul class="contact">
+        <li><i class="bi bi-geo-alt"></i>
+          <span>45, Kattur Sadayappan Street, Periamet, Chennai, Tamil Nadu 600003</span></li>
+        <li><i class="bi bi-envelope"></i><a [href]="'mailto:' + email()">{{ email() }}</a></li>
+        <li><i class="bi bi-telephone"></i><a [href]="'tel:' + phoneHref()">{{ phone() }}</a></li>
+        <li><i class="bi bi-clock"></i><span>Mon to Sat, 9 AM to 8 PM</span></li>
+      </ul>
+
+      <div class="social">
+        <a href="https://www.instagram.com/spunileathers" target="_blank" rel="noopener noreferrer"
+           aria-label="SPUNI on Instagram"><i class="bi bi-instagram"></i></a>
+        <a [href]="whatsapp()" target="_blank" rel="noopener noreferrer" aria-label="Chat with SPUNI on WhatsApp">
+          <i class="bi bi-whatsapp"></i></a>
+        <a [href]="'mailto:' + email()" aria-label="Email SPUNI"><i class="bi bi-envelope-paper"></i></a>
+      </div>
+    </div>
+
+    <nav class="col" aria-labelledby="f-shop">
+      <h3 id="f-shop"><span>01</span> Shop</h3>
+      <ul>
+        @for (c of categories(); track c.slug) {
+          <li><a [routerLink]="['/category', c.slug]">{{ c.name }}</a></li>
+        }
+        <li><a routerLink="/shop">Shop all</a></li>
+      </ul>
+    </nav>
+
+    <nav class="col" aria-labelledby="f-discover">
+      <h3 id="f-discover"><span>02</span> Discover</h3>
+      <ul>
+        <li><a routerLink="/whats-new">What's New</a></li>
+        <li><a routerLink="/gift">Gift a loved one</a></li>
+        <li><a routerLink="/customization">Customisation</a></li>
+        <li><a routerLink="/account/wallet">SPUNI Wallet</a></li>
+        <li><a routerLink="/about">Our story</a></li>
+      </ul>
+    </nav>
+
+    <nav class="col" aria-labelledby="f-help">
+      <h3 id="f-help"><span>03</span> Help</h3>
+      <ul>
+        <li><a routerLink="/account/orders">Track an order</a></li>
+        <li><a routerLink="/shipping">Shipping</a></li>
+        <li><a routerLink="/returns">Returns &amp; exchanges</a></li>
+        <li><a routerLink="/faq">FAQs</a></li>
+        <li><a routerLink="/contact">Contact us</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="word" aria-hidden="true">
+    @for (l of letters; track $index) { <span>{{ l }}</span> }
+  </div>
+
+  <div class="bottom container">
+    <p>© {{ year }} SPUNI Leathers. Made slowly, carried forever.</p>
+    <nav class="legal" aria-label="Legal">
+      <a routerLink="/privacy">Privacy</a>
+      <a routerLink="/terms">Terms</a>
+      <a routerLink="/returns">Refunds</a>
+    </nav>
+    <div class="pay" aria-label="Secure payments by Razorpay: UPI, cards, net banking">
+      <i class="bi bi-shield-lock"></i> Secure payments · UPI · Cards · Net banking
+    </div>
+    <button type="button" class="up" (click)="toTop()" aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+  </div>
+</footer>

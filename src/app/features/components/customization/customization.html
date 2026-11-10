@@ -1,0 +1,37 @@
+<section class="cz" id="customization" aria-labelledby="cz-title">
+  <div class="container">
+    <header class="head">
+      <span class="eyebrow">Customisation studio</span>
+      <h2 id="cz-title" class="title" appRevealText="words">Your story, <em>stitched in.</em></h2>
+      <p class="lead">Three ways to make a SPUNI piece only yours. Pick one and we'll take it from there.</p>
+    </header>
+
+    <div class="deck" #deck>
+      @for (w of ways; track w.mode; let i = $index) {
+        <article class="way" [class]="'way w' + i">
+          <div class="w-media">
+            <img [src]="w.image" [alt]="w.alt" loading="lazy" decoding="async" [appZoomable]="w.image" [zoomTitle]="w.title"
+                 [zoomLink]="'/customization?mode=' + w.mode" zoomLinkLabel="Start this request" />
+            <span class="step">{{ w.step }}</span>
+            <span class="scan" aria-hidden="true"></span>
+          </div>
+          <div class="w-copy">
+            <h3>{{ w.title }}</h3>
+            <p>{{ w.text }}</p>
+            <ul>
+              @for (pt of w.points; track pt) { <li><i class="bi bi-check2"></i>{{ pt }}</li> }
+            </ul>
+            <a class="link-arrow" routerLink="/customization" [queryParams]="{ mode: w.mode }">{{ w.cta }}</a>
+          </div>
+        </article>
+      }
+    </div>
+
+    <div class="cta">
+      <a class="btn btn-primary" routerLink="/customization" appMagnetic="0.3">
+        <i class="bi bi-magic"></i> Request customisation
+      </a>
+      <span class="muted">Free consultation · Quote in 48 hours · Made in 2 to 3 weeks</span>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,152 @@
+<div class="page checkout">
+  <div class="container">
+    <header class="page-head">
+      <nav class="steps" aria-label="Checkout steps">
+        <a routerLink="/cart">Bag</a><i class="bi bi-chevron-right"></i><span class="on">Details &amp; payment</span>
+        <i class="bi bi-chevron-right"></i><span>Done</span>
+      </nav>
+      <h1 class="title">Almost <em>yours.</em></h1>
+    </header>
+
+    @if (!cart.items().length && !pending()) {
+      <app-empty-state icon="bi-bag" title="Your bag is empty" text="Add a piece or two before checking out." actionLink="/shop" />
+    } @else {
+      <div class="layout">
+        <div class="col">
+          <section class="block panel">
+            <h2><span>1</span> Contact</h2>
+            <p class="who"><i class="bi bi-person-check"></i> {{ auth.user()?.full_name || 'Signed in' }}
+              <span class="muted">· {{ auth.user()?.email }}</span></p>
+            <p class="muted small">Order updates and tracking go to this email.</p>
+          </section>
+
+          <section class="block panel">
+            <h2><span>2</span> {{ isGift() ? 'Their delivery address' : 'Delivery address' }}</h2>
+            @if (isGift()) { <p class="muted small">Sending a gift? Enter the recipient's address and phone number here.</p> }
+            @if (!addressesLoaded()) {
+              <div class="skeleton sk"></div>
+            } @else {
+              @if (addresses().length && !addingAddress()) {
+                <div class="addresses" role="radiogroup" aria-label="Saved addresses">
+                  @for (a of addresses(); track a.id) {
+                    <label class="addr" [class.on]="selectedAddress() === a.id">
+                      <input type="radio" name="addr" [checked]="selectedAddress() === a.id" (change)="selectedAddress.set(a.id)" />
+                      <span>
+                        <b>{{ a.full_name }} @if (a.label) { <em class="chip mini">{{ a.label }}</em> }</b>
+                        <small>{{ a.line1 }}@if (a.line2) {, {{ a.line2 }}}, {{ a.city }}, {{ a.state }} {{ a.postal_code }}</small>
+                        <small>{{ a.phone }}</small>
+                      </span>
+                    </label>
+                  }
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" (click)="addingAddress.set(true)">
+                  <i class="bi bi-plus"></i> Deliver somewhere new</button>
+              } @else {
+                <app-address-form [showSubmit]="false" [showDefault]="false" />
+                <label class="check save"><input type="checkbox" [(ngModel)]="saveAddress" name="save" />
+                  <span>Save this address for next time</span></label>
+                @if (addresses().length) {
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="addingAddress.set(false)">Use a saved address</button>
+                }
+              }
+            }
+          </section>
+
+          <section class="block panel">
+            <h2><span>3</span> Is it a gift?</h2>
+            <label class="switch">
+              <input type="checkbox" [checked]="isGift()" (change)="toggleGift($any($event.target).checked)" />
+              <span class="track"><span class="knob"></span></span>
+              <span>Yes, send it as a gift <i class="bi bi-gift"></i></span>
+            </label>
+            @if (isGift()) {
+              <div class="gift form-grid">
+                <div class="field">
+                  <label for="g-name">Recipient's name</label>
+                  <input id="g-name" class="input" [(ngModel)]="gift.recipient_name" name="gname" maxlength="120" />
+                </div>
+                <div class="field">
+                  <label for="g-email">Their email <span class="muted">(optional, for a heads-up)</span></label>
+                  <input id="g-email" class="input" type="email" [(ngModel)]="gift.recipient_email" name="gemail" maxlength="254" />
+                </div>
+                <div class="field span-2">
+                  <label for="g-msg">Gift note <span class="muted">({{ 300 - gift.message.length }} left)</span></label>
+                  <textarea id="g-msg" class="textarea" rows="3" [(ngModel)]="gift.message" name="gmsg" maxlength="300"
+                            placeholder="Happy birthday! Carry this everywhere."></textarea>
+                </div>
+                <label class="check"><input type="checkbox" [checked]="giftWrap()" (change)="giftWrap.set($any($event.target).checked)" />
+                  <span>Gift wrap it @if (giftWrapPrice()) { (+{{ giftWrapPrice() | inr }}) }</span></label>
+                <label class="check"><input type="checkbox" [(ngModel)]="gift.hide_prices" name="hide" />
+                  <span>Hide prices on the packing slip</span></label>
+              </div>
+            }
+          </section>
+
+          <section class="block panel">
+            <h2><span>4</span> SPUNI Wallet</h2>
+            @if (walletBalance() > 0) {
+              <label class="switch">
+                <input type="checkbox" [checked]="useWallet()" (change)="useWallet.set($any($event.target).checked)" />
+                <span class="track"><span class="knob"></span></span>
+                <span>Use my balance of <b>{{ walletBalance() | inr }}</b></span>
+              </label>
+              <p class="muted small">You can use wallet points for up to {{ maxRedeemPercent() }}% of your order subtotal.</p>
+            } @else {
+              <p class="muted">Your wallet is empty for now. This order earns
+                <b>{{ (quote()?.wallet_reward_estimate_paise ?? 0) | inr }}</b> to spend next time.</p>
+            }
+          </section>
+
+          <section class="block panel">
+            <h2><span>5</span> Anything we should know? <small class="muted">(optional)</small></h2>
+            <textarea class="textarea" rows="2" [(ngModel)]="note" name="note" maxlength="500"
+                      placeholder="Delivery instructions, preferred time…"></textarea>
+          </section>
+        </div>
+
+        <aside class="summary panel" aria-label="Order summary">
+          <h2>Your order</h2>
+          <ul class="items">
+            @for (l of quote()?.lines ?? []; track l.product_id) {
+              <li>
+                <span class="thumb">@if (l.image_url) { <img [src]="l.image_url" [alt]="l.name" /> }<b>{{ l.quantity }}</b></span>
+                <span class="nm">{{ l.name }} @if (l.issue) { <small class="issue">{{ l.issue }}</small> }</span>
+                <span>{{ l.line_total_paise | inr }}</span>
+              </li>
+            }
+          </ul>
+          @if (quote(); as q) {
+            <dl>
+              <dt>Subtotal</dt><dd>{{ q.subtotal_paise | inr }}</dd>
+              <dt>Shipping</dt><dd>{{ q.shipping_paise ? (q.shipping_paise | inr) : 'Free' }}</dd>
+              @if (q.gift_wrap_paise) { <dt>Gift wrap</dt><dd>{{ q.gift_wrap_paise | inr }}</dd> }
+              @if (q.wallet_applied_paise) { <dt>SPUNI Wallet</dt><dd class="minus">−{{ q.wallet_applied_paise | inr }}</dd> }
+              <dt class="total">Total</dt><dd class="total">{{ q.total_paise | inr }}</dd>
+            </dl>
+            @if (q.wallet_reward_estimate_paise) {
+              <p class="reward"><i class="bi bi-stars"></i> You'll earn {{ q.wallet_reward_estimate_paise | inr }} back</p>
+            }
+          } @else {
+            <div class="skeleton sk-sum"></div>
+          }
+
+          @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+
+          @if (pending() && !placing()) {
+            <button type="button" class="btn btn-primary btn-block" (click)="retryPayment()">
+              Pay {{ pending()!.amount_paise | inr }} now <i class="bi bi-lock"></i></button>
+            <p class="muted small">Order {{ pending()!.order_number }} is reserved for 30 minutes.</p>
+          } @else {
+            <button type="button" class="btn btn-primary btn-block place" (click)="placeOrder()"
+                    [disabled]="placing() || !quote() || quote()!.has_issues">
+              @if (placing()) { <span class="spin"></span> Processing… }
+              @else { Place order &amp; pay {{ (quote()?.total_paise ?? 0) | inr }} <i class="bi bi-lock"></i> }
+            </button>
+          }
+          <p class="secure"><i class="bi bi-shield-check"></i> 256-bit secure payment by Razorpay.
+            By placing your order you agree to our <a routerLink="/terms">terms</a>.</p>
+        </aside>
+      </div>
+    }
+  </div>
+</div>

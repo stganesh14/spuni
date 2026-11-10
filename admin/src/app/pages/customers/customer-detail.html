@@ -1,0 +1,161 @@
+<app-state [loading]="loading() && !data()" [error]="data() ? null : error()" (retry)="load()" />
+
+@if (data(); as d) {
+  <app-page-header [title]="d.customer.full_name || d.customer.email" eyebrow="Sales · Customers" [subtitle]="'Joined ' + (d.customer.created_at | dt)">
+    <a routerLink="/customers" class="btn btn-ghost">Back to customers</a>
+  </app-page-header>
+
+  <section class="kpi-row">
+    <div class="card mini"><span class="muted small">Orders</span><strong>{{ d.customer.order_count }}</strong></div>
+    <div class="card mini"><span class="muted small">Total spent</span><strong>{{ d.customer.total_spent_paise | money }}</strong></div>
+    <div class="card mini"><span class="muted small">Wallet balance</span><strong>{{ d.wallet.balance_paise | money }}</strong></div>
+    <div class="card mini"><span class="muted small">Lifetime earned</span><strong>{{ d.wallet.lifetime_earned_paise | money }}</strong></div>
+  </section>
+
+  <div class="grid-2">
+    <div class="stack">
+      <section class="card card-flush">
+        <div class="card-header" style="padding: 18px 20px 0"><h2>Orders</h2></div>
+        @if (d.orders.length === 0) {
+          <app-state [empty]="true" emptyTitle="No orders yet" />
+        } @else {
+          <div class="table-wrap">
+            <table class="table responsive">
+              <thead>
+                <tr>
+                  <th scope="col">Order</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of d.orders; track o.number) {
+                  <tr>
+                    <td class="primary-cell" data-label=""><a class="row-link mono" [routerLink]="['/orders', o.number]">{{ o.number }}</a></td>
+                    <td data-label="Date">{{ o.created_at | dt }}</td>
+                    <td data-label="Status"><app-status [value]="o.status" /></td>
+                    <td class="num" data-label="Total">{{ o.total_paise | money }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="card card-flush">
+        <div class="card-header" style="padding: 18px 20px 0"><h2>Wallet ledger</h2></div>
+        @if (d.wallet.transactions.length === 0) {
+          <app-state [empty]="true" emptyTitle="No wallet activity" />
+        } @else {
+          <div class="table-wrap">
+            <table class="table responsive">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Reason</th>
+                  <th scope="col" class="num">Amount</th>
+                  <th scope="col" class="num">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (t of d.wallet.transactions; track t.id) {
+                  <tr>
+                    <td class="primary-cell nowrap" data-label="">{{ t.created_at | dt: true }}</td>
+                    <td data-label="Reason">
+                      {{ t.reason | humanize }}
+                      @if (t.order_number) {
+                        · <a [routerLink]="['/orders', t.order_number]" class="mono">{{ t.order_number }}</a>
+                      }
+                      @if (t.note) {
+                        <div class="muted small">{{ t.note }}</div>
+                      }
+                    </td>
+                    <td class="num" data-label="Amount" [class.ok-text]="t.type === 'credit'" [class.danger-text]="t.type === 'debit'">
+                      {{ t.type === 'credit' ? '+' : '−' }}{{ t.amount_paise | money }}
+                    </td>
+                    <td class="num" data-label="Balance">{{ t.balance_after_paise | money }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Account</h2>
+        <dl class="dl">
+          <dt>Email</dt>
+          <dd><a [href]="'mailto:' + d.customer.email">{{ d.customer.email }}</a></dd>
+          <dt>Phone</dt>
+          <dd>{{ d.customer.phone || '—' }}</dd>
+          <dt>Last sign-in</dt>
+          <dd>{{ d.customer.last_login_at | dt: true }}</dd>
+          <dt>Status</dt>
+          <dd><app-status [value]="d.customer.is_active ? 'active' : 'inactive'" /></dd>
+        </dl>
+        <div class="field" style="margin-top: 16px">
+          <label for="cust-role">Role</label>
+          <select
+            id="cust-role"
+            class="select"
+            [disabled]="busy() || isSelf()"
+            (change)="changeRole($any($event.target).value); $any($event.target).value = d.customer.role"
+          >
+            <option value="customer" [selected]="d.customer.role === 'customer'">Customer</option>
+            <option value="admin" [selected]="d.customer.role === 'admin'">Admin</option>
+          </select>
+          @if (isSelf()) {
+            <p class="field-hint">You cannot change your own role or deactivate yourself.</p>
+          }
+        </div>
+        <div style="margin-top: 14px">
+          <button
+            type="button"
+            class="btn"
+            [class.btn-danger]="d.customer.is_active"
+            [class.btn-primary]="!d.customer.is_active"
+            [disabled]="busy() || isSelf()"
+            (click)="toggleActive()"
+          >
+            {{ d.customer.is_active ? 'Deactivate account' : 'Reactivate account' }}
+          </button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Adjust wallet</h2>
+        <form [formGroup]="wallet" (ngSubmit)="adjustWallet()" novalidate class="stack" style="gap: 12px">
+          <div class="tabs" role="radiogroup" aria-label="Direction">
+            <button type="button" role="radio" [attr.aria-checked]="wallet.controls.direction.value === 'credit'" [attr.aria-pressed]="wallet.controls.direction.value === 'credit'" (click)="wallet.controls.direction.setValue('credit')">Credit (+)</button>
+            <button type="button" role="radio" [attr.aria-checked]="wallet.controls.direction.value === 'debit'" [attr.aria-pressed]="wallet.controls.direction.value === 'debit'" (click)="wallet.controls.direction.setValue('debit')">Debit (−)</button>
+          </div>
+          <app-field label="Amount (₹)" for="w-amount" [required]="true" [control]="wallet.controls.amount">
+            <div class="input-group">
+              <span class="addon">₹</span>
+              <input id="w-amount" class="input" inputmode="decimal" formControlName="amount" />
+            </div>
+          </app-field>
+          <app-field label="Reason" for="w-note" [required]="true" [control]="wallet.controls.note" hint="3–300 characters. Shown to the customer.">
+            <input id="w-note" class="input" formControlName="note" maxlength="300" placeholder="e.g. Goodwill credit for delayed delivery" />
+          </app-field>
+          @if (wallet.controls.direction.value === 'credit') {
+            <label class="check"><input type="checkbox" formControlName="notify_customer" /> Email the customer</label>
+          }
+          @if (walletError()) {
+            <p class="form-alert" role="alert">{{ walletError() }}</p>
+          }
+          <div>
+            <button type="submit" class="btn btn-primary" [disabled]="adjusting()">
+              {{ adjusting() ? 'Saving…' : wallet.controls.direction.value === 'credit' ? 'Credit wallet' : 'Debit wallet' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+}
