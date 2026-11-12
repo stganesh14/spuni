@@ -20,10 +20,10 @@ The public URLs are:
 The commands below assume the Linux account is `spuni` and the checked-out project root is:
 
 ```text
-/home/spuni/app/spuni/spuni
+/home/spuni/spuni
 ```
 
-That path matches the project paths shown in the VPS logs. If your repository root is different, replace this path consistently in every command and service file. The project root is the directory containing `package.json`, `admin/`, and `backend/`.
+This is the project path shown in your latest VPS terminal output (`~/spuni/backend`). If your repository root is different, replace this path consistently in every command and service file. The project root is the directory containing the storefront `package.json`, `admin/`, and `backend/`.
 
 > **Do not paste real passwords, SMTP credentials, database URLs, or signing secrets into chat or commit them to Git.** If any real credential has been committed to a tracked file, rotate it before production. Keep the VPS `backend/.env` private and backed up securely.
 >
@@ -54,13 +54,13 @@ sudo ufw status
 
 ## 2. Install system packages
 
-Use Ubuntu 24.04 LTS (Python 3.12). Angular 21 needs a supported modern Node release; use Node 22.
+Install the Python version supplied by your Ubuntu release. This project requires Python 3.12 or newer; Ubuntu 26.04 ("Resolute") supplies a newer Python, so use the generic `python3` and `python3-venv` package names rather than pinning Python 3.12. Angular 21 needs a supported modern Node release; use Node 22.
 
 ```bash
 sudo apt update
 sudo apt upgrade -y
 sudo apt install -y git curl ca-certificates build-essential nginx postgresql postgresql-contrib \
-  python3.12 python3.12-venv python3-pip rsync
+  python3 python3-venv python3-pip rsync
 ```
 
 Install Node.js 22:
@@ -70,7 +70,7 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
 node --version
 npm --version
-python3.12 --version
+python3 --version
 ```
 
 Create the deployment account if it does not already exist:
@@ -88,14 +88,14 @@ As `spuni`, clone the repository. Replace the URL with the repository's actual G
 
 ```bash
 mkdir -p /home/spuni/app
-mkdir -p /home/spuni/app/spuni
-git clone YOUR_REPOSITORY_URL /home/spuni/app/spuni/spuni
+mkdir -p /home/spuni
+git clone YOUR_REPOSITORY_URL /home/spuni/spuni
 ```
 
 If the code is already on the VPS, do not clone it again. Instead, confirm the project root and update it using your normal deployment method:
 
 ```bash
-cd /home/spuni/app/spuni/spuni
+cd /home/spuni/spuni
 test -f package.json && test -f admin/package.json && test -f backend/requirements.txt \
   && echo "Project root confirmed" || echo "Wrong directory: locate the directory containing all three files"
 ```
@@ -133,8 +133,8 @@ PostgreSQL should not be exposed publicly; it only needs to listen on localhost.
 As `spuni`:
 
 ```bash
-cd /home/spuni/app/spuni/spuni/backend
-python3.12 -m venv .venv
+cd /home/spuni/spuni/backend
+python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
@@ -195,7 +195,7 @@ Important:
 Run migrations and seed the initial admin/catalogue:
 
 ```bash
-cd /home/spuni/app/spuni/spuni/backend
+cd /home/spuni/spuni/backend
 source .venv/bin/activate
 alembic upgrade head
 python -m scripts.seed --admin-email YOUR_ADMIN_EMAIL
@@ -204,22 +204,70 @@ deactivate
 
 The app also checks/migrates/seeds an empty database during startup. The explicit commands above make setup errors visible before starting the service.
 
+### If migrations report a PostgreSQL password or driver error
+
+The connection URL for this backend must use the `asyncpg` driver:
+
+```dotenv
+DATABASE_URL=postgresql+asyncpg://spuni:YOUR_DATABASE_PASSWORD@127.0.0.1:5432/spuni
+```
+
+Do not use `postgresql+psycopg://` here. This project installs `asyncpg`; a `No module named 'psycopg'` error usually means the URL was changed to the wrong driver. Keep the password in the URL identical to the password for the PostgreSQL role `spuni`. Using a hexadecimal password avoids URL-escaping special characters.
+
+To reset the role password, generate a new value:
+
+```bash
+openssl rand -hex 24
+```
+
+Copy that value privately. Set the PostgreSQL role password interactively (so it is not placed in shell history):
+
+```bash
+sudo -u postgres psql
+```
+
+At the `psql` prompt:
+
+```sql
+\password spuni
+\q
+```
+
+Enter the generated value twice when prompted. Then edit the backend `.env` and set `DATABASE_URL` to use that exact same password and the `postgresql+asyncpg://` prefix. Do not send the password in chat.
+
+Verify the role/database connection before retrying migrations:
+
+```bash
+psql "postgresql://spuni@127.0.0.1:5432/spuni" -W -c "SELECT current_user, current_database();"
+```
+
+Enter the new password when prompted. If this succeeds, run:
+
+```bash
+cd /home/spuni/spuni/backend
+source .venv/bin/activate
+alembic upgrade head
+```
+
 ## 6. Build the customer and admin apps
 
 Build the customer storefront from the project root:
 
 ```bash
-cd /home/spuni/app/spuni/spuni
-npm ci
-npm run build
+cd /home/spuni/spuni
+npx -y npm@11.19.1 ci
+npx ng build --configuration production --base-href=/
 test -f dist/spuni/server/server.mjs && echo "Storefront SSR build exists"
+grep -o '<base href="[^"]*"' dist/spuni/browser/index.csr.html
 ```
+
+The storefront must show `<base href="/">`. Do not pass `/admin/` as the base href when building the customer app.
 
 Build the admin app with `/admin/` as its base path:
 
 ```bash
-cd /home/spuni/app/spuni/spuni/admin
-npm ci
+cd /home/spuni/spuni/admin
+npx -y npm@11.19.1 ci
 npx ng build --configuration production --base-href /admin/ --deploy-url /admin/
 test -f dist/admin/browser/index.html && echo "Admin build exists"
 ```
@@ -228,11 +276,32 @@ Install the static admin files for nginx:
 
 ```bash
 sudo mkdir -p /var/www/spuni-admin
-sudo rsync -a /home/spuni/app/spuni/spuni/admin/dist/admin/browser/ /var/www/spuni-admin/
+sudo rsync -a /home/spuni/spuni/admin/dist/admin/browser/ /var/www/spuni-admin/
 sudo chown -R www-data:www-data /var/www/spuni-admin
 ```
 
 The admin app is static; it does not need its own systemd service.
+
+If npm reports `Cannot read properties of null (reading 'edgesOut')`, first confirm you are in the directory containing the correct `package.json` and `package-lock.json`, then use the pinned npm version as shown above. Do not delete the lockfile or run `npm audit fix` to work around this error.
+
+### If storefront JavaScript requests return HTML
+
+The customer app is at `/` and its `<base href>` must be `/`. Only the admin app uses `/admin/`. If browser console errors say module scripts received `text/html`, check the live storefront document's base path and a failed JS request:
+
+```bash
+curl -s https://www.spunileathers.com/ | grep -o '<base href="[^"]*"'
+```
+
+If that prints `<base href="/admin/">`, the VPS is serving a customer build with the wrong base path (or an old/wrong build). Build the customer app from `/home/spuni/spuni` with `--base-href /`, verify the generated `index.csr.html` reports `/`, then restart the storefront:
+
+```bash
+cd /home/spuni/spuni
+npx ng build --configuration production --base-href=/
+grep -o '<base href="[^"]*"' dist/spuni/browser/index.csr.html
+sudo systemctl restart spuni-storefront
+```
+
+After restarting, the production page should no longer have its customer scripts under `/admin/`. The `security.allowedHosts` list in the root `angular.json` must include both production hostnames before rebuilding, or the Angular SSR engine can reject requests proxied by nginx.
 
 ## 7. Create persistent systemd services
 
@@ -253,9 +322,9 @@ Wants=postgresql.service
 [Service]
 Type=simple
 User=spuni
-WorkingDirectory=/home/spuni/app/spuni/spuni/backend
+WorkingDirectory=/home/spuni/spuni/backend
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/spuni/app/spuni/spuni/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+ExecStart=/home/spuni/spuni/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=5
 
@@ -279,14 +348,14 @@ After=network.target spuni-backend.service
 [Service]
 Type=simple
 User=spuni
-WorkingDirectory=/home/spuni/app/spuni/spuni
+WorkingDirectory=/home/spuni/spuni
 Environment=NODE_ENV=production
 Environment=PORT=4000
 Environment=API_ORIGIN=http://127.0.0.1:8000
 Environment=NG_ALLOWED_HOSTS=spunileathers.com,www.spunileathers.com,localhost,127.0.0.1
 Environment=ALLOWED_HOSTS=spunileathers.com,www.spunileathers.com,localhost,127.0.0.1
 Environment=TRUST_PROXY=loopback
-ExecStart=/usr/bin/node /home/spuni/app/spuni/spuni/dist/spuni/server/server.mjs
+ExecStart=/usr/bin/node /home/spuni/spuni/dist/spuni/server/server.mjs
 Restart=on-failure
 RestartSec=5
 
@@ -444,13 +513,13 @@ sudo systemctl reload nginx
 Update the code in the existing project root; do not reinstall Ubuntu or recreate the database:
 
 ```bash
-cd /home/spuni/app/spuni/spuni
+cd /home/spuni/spuni
 git pull
-npm ci
-npm run build
+npx -y npm@11.19.1 ci
+npx ng build --configuration production --base-href=/
 
 cd admin
-npm ci
+npx -y npm@11.19.1 ci
 npx ng build --configuration production --base-href /admin/ --deploy-url /admin/
 sudo rsync -a dist/admin/browser/ /var/www/spuni-admin/
 

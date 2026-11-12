@@ -46,7 +46,9 @@
             "security": {
               "allowedHosts": [
                 "localhost",
-                "127.0.0.1"
+                "127.0.0.1",
+                "spunileathers.com",
+                "www.spunileathers.com"
               ]
             },
             "ssr": {
