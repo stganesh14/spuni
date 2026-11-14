@@ -27,7 +27,7 @@
        (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()"
        data-lenis-prevent-horizontal>
     @for (p of visible(); track p.id; let i = $index) {
-      <div class="slot" [style.--i]="i"><app-product-card [product]="p" [index]="i" /></div>
+      <div class="slot" [style.--i]="i"><app-product-card [product]="p" [index]="i" [showDetailsOnImage]="true" /></div>
     } @empty {
       @for (n of [1, 2, 3, 4]; track n) { <div class="slot"><div class="skeleton sk"></div></div> }
     }

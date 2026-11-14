@@ -1,4 +1,4 @@
-<article class="card" appTilt="5" [class.sold-out]="!product().in_stock">
+<article class="card" appTilt="5" [class.sold-out]="!product().in_stock" [class.has-quick-info]="showDetailsOnImage()">
   <div class="media">
     @if (product().image_url) {
       <img
@@ -19,6 +19,23 @@
       <img class="img hover" [src]="product().hover_image_url" alt="" loading="lazy" decoding="async" aria-hidden="true" />
     }
     <span class="glare" aria-hidden="true"></span>
+
+    @if (showDetailsOnImage()) {
+      <div class="quick-info" aria-hidden="true">
+        <span class="quick-category">{{ product().category.name }}</span>
+        <span class="quick-name">{{ product().name }}</span>
+        @if (product().short_description) {
+          <span class="quick-description">{{ product().short_description }}</span>
+        }
+        <span class="quick-price">
+          <b>{{ product().price_paise | inr }}</b>
+          @if (product().compare_at_price_paise) {
+            <s>{{ product().compare_at_price_paise | inr }}</s>
+          }
+          @if (discount() > 0) { <span class="quick-discount">-{{ discount() }}%</span> }
+        </span>
+      </div>
+    }
 
     <div class="tags">
       @if (!product().in_stock) {

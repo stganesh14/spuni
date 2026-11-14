@@ -22,6 +22,7 @@ export class ProductCardComponent {
   readonly product = input.required<Product>();
   readonly index = input(0);
   readonly eager = input(false);
+  readonly showDetailsOnImage = input(false);
 
   protected readonly link = computed(() => `/product/${this.product().slug}`);
   protected readonly saved = computed(() => this.wishlist.ids().includes(this.product().id));
