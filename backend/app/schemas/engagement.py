@@ -47,7 +47,14 @@ class StoreInfoOut(OutputModel):
     shipping_flat_paise: int
     free_shipping_threshold_paise: int
     gift_wrap_paise: int
-    wallet_earn_percent: int
     wallet_max_redeem_percent: int
+    wallet_cash_value_paise: int
+    wallet_tier_1_limit_paise: int
+    wallet_tier_2_limit_paise: int
+    wallet_tier_3_limit_paise: int
+    wallet_tier_1_percent: int
+    wallet_tier_2_percent: int
+    wallet_tier_3_percent: int
+    wallet_tier_4_percent: int
     payment_mode: str
     razorpay_key_id: str | None

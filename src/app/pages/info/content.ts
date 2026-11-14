@@ -81,7 +81,7 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
       {
         heading: 'Cancellations',
         body: [
-          'You can cancel an order from My account until it ships. Card and UPI payments are refunded to the original method, and any SPUNI Wallet points you used are returned to your wallet instantly.',
+          'You can cancel an order from My account until it ships. Card and UPI payments are refunded to the original method, and any Spuni Cash you used is returned to your wallet instantly.',
         ],
       },
       {
@@ -101,11 +101,11 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
     sections: [],
     faq: [
       { q: 'Do I need an account to shop?', a: 'No. Browse and fill your bag freely. We only ask you to sign in with your email, using a one-time code, when you check out.' },
-      { q: 'What is the SPUNI Wallet?', a: 'Every order earns a percentage back as wallet points. You can use them for part of your next order. Gift cards are redeemed into the wallet too.' },
+      { q: 'What is Spuni Cash?', a: 'Eligible orders earn Spuni Cash based on the order value. You can use it for part of your next order. Gift cards are also added to your wallet as Spuni Cash.' },
       { q: 'I did not receive my login code.', a: 'Check your spam or promotions folder, then use "Send a new code" on the sign-in page. Each new code replaces the previous one.' },
       { q: 'Is the leather real?', a: 'All SPUNI pieces use premium vegan leather. No animal skin is used in any of our products.' },
       { q: 'Can I personalise my order?', a: 'Yes. Pieces marked Customisable can be monogrammed, and you can request fully bespoke designs from the Customise page.' },
-      { q: 'How do e-gift cards work?', a: 'Choose an amount, add the recipient and a message, and pay. They receive a secure code by email to redeem into their SPUNI Wallet.' },
+      { q: 'How do e-gift cards work?', a: 'Choose an amount, add the recipient and a message, and pay. They receive a secure code by email to redeem as Spuni Cash.' },
       { q: 'Which payment methods do you accept?', a: 'UPI, all major credit and debit cards and net banking, processed securely by Razorpay.' },
       { q: 'How do I care for vegan leather?', a: 'Wipe with a soft dry cloth, keep away from prolonged sunlight and moisture, and store stuffed lightly in the dust bag.' },
     ],
@@ -128,7 +128,7 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
     lead: 'The short version: be kind, use the site honestly, and we will do the same.',
     sections: [
       { heading: 'Orders', body: ['An order is confirmed once payment is verified. Prices are in Indian rupees and include applicable taxes. We may cancel and fully refund orders affected by pricing errors or stock problems.'] },
-      { heading: 'SPUNI Wallet', body: ['Wallet points have no cash value, cannot be transferred, and can be used for up to the percentage of an order shown at checkout. Points earned on an order are reversed if it is cancelled or refunded.'] },
+      { heading: 'Spuni Cash', body: ['Spuni Cash has the rupee value shown in your wallet, cannot be transferred, and can be used for up to the percentage of an order shown at checkout. Spuni Cash earned on an order is reversed if it is cancelled or refunded.'] },
       { heading: 'Gift cards', body: ['E-gift cards are valid for the period shown at purchase, can be redeemed once, and cannot be exchanged for cash.'] },
       { heading: 'Customisation', body: ['Bespoke work begins once you approve the design and quote. Personalised pieces are made for you and are not returnable unless faulty.'] },
       { heading: 'Contact', body: ['Questions about these terms can be sent from the Contact page.'] },

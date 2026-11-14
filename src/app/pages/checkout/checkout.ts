@@ -26,13 +26,14 @@ import { GIFT_INTENT_KEY, safeStorage } from '../../core/utils/storage';
 import { AddressForm } from '../../shared/components/address-form/address-form';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 const NAME = /^[A-Za-zÀ-ɏऀ-෿][A-Za-zÀ-ɏऀ-෿ .'-]{1,119}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 @Component({
   selector: 'app-checkout-page',
-  imports: [FormsModule, RouterLink, InrPipe, AddressForm, EmptyState],
+  imports: [FormsModule, RouterLink, InrPipe, SpuniCashPipe, AddressForm, EmptyState],
   templateUrl: './checkout.html',
   styleUrl: './checkout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -27,6 +27,7 @@ import { Bestsellers } from '../../features/components/bestsellers/bestsellers';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { MagneticDirective } from '../../shared/directives/magnetic.directive';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 interface State {
   loading: boolean;
@@ -37,7 +38,7 @@ interface State {
 
 @Component({
   selector: 'app-product-page',
-  imports: [RouterLink, InrPipe, EmptyState, Bestsellers, MagneticDirective],
+  imports: [RouterLink, InrPipe, SpuniCashPipe, EmptyState, Bestsellers, MagneticDirective],
   templateUrl: './product.html',
   styleUrl: './product.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -93,8 +94,17 @@ export class ProductPage {
   });
   protected readonly earn = computed(() => {
     const p = this.p();
-    const pct = this.store.info()?.wallet_earn_percent ?? 0;
-    return p ? Math.floor((p.price_paise * this.qty() * pct) / 100 / 100) * 100 : 0;
+    const info = this.store.info();
+    if (!p || !info) return 0;
+    const subtotal = p.price_paise * this.qty();
+    const percent = subtotal < info.wallet_tier_1_limit_paise
+      ? info.wallet_tier_1_percent
+      : subtotal < info.wallet_tier_2_limit_paise
+        ? info.wallet_tier_2_percent
+        : subtotal <= info.wallet_tier_3_limit_paise
+          ? info.wallet_tier_3_percent
+          : info.wallet_tier_4_percent;
+    return Math.floor((subtotal * percent) / 100 / 100) * 100;
   });
   protected readonly saved = computed(() => !!this.p() && this.wishlist.ids().includes(this.p()!.id));
 

@@ -83,17 +83,17 @@
           </section>
 
           <section class="block panel">
-            <h2><span>4</span> SPUNI Wallet</h2>
+            <h2><span>4</span> Spuni Cash</h2>
             @if (walletBalance() > 0) {
               <label class="switch">
                 <input type="checkbox" [checked]="useWallet()" (change)="useWallet.set($any($event.target).checked)" />
                 <span class="track"><span class="knob"></span></span>
-                <span>Use my balance of <b>{{ walletBalance() | inr }}</b></span>
+                <span>Use my balance of <b>{{ walletBalance() | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }}</b></span>
               </label>
-              <p class="muted small">You can use wallet points for up to {{ maxRedeemPercent() }}% of your order subtotal.</p>
+              <p class="muted small">You can use Spuni Cash for up to {{ maxRedeemPercent() }}% of your order subtotal.</p>
             } @else {
               <p class="muted">Your wallet is empty for now. This order earns
-                <b>{{ (quote()?.wallet_reward_estimate_paise ?? 0) | inr }}</b> to spend next time.</p>
+                <b>{{ (quote()?.wallet_reward_estimate_paise ?? 0) | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }}</b> to spend next time.</p>
             }
           </section>
 
@@ -120,11 +120,11 @@
               <dt>Subtotal</dt><dd>{{ q.subtotal_paise | inr }}</dd>
               <dt>Shipping</dt><dd>{{ q.shipping_paise ? (q.shipping_paise | inr) : 'Free' }}</dd>
               @if (q.gift_wrap_paise) { <dt>Gift wrap</dt><dd>{{ q.gift_wrap_paise | inr }}</dd> }
-              @if (q.wallet_applied_paise) { <dt>SPUNI Wallet</dt><dd class="minus">−{{ q.wallet_applied_paise | inr }}</dd> }
+              @if (q.wallet_applied_paise) { <dt>Spuni Cash applied</dt><dd class="minus">−{{ q.wallet_applied_paise | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }} ({{ q.wallet_applied_paise | inr }} value)</dd> }
               <dt class="total">Total</dt><dd class="total">{{ q.total_paise | inr }}</dd>
             </dl>
             @if (q.wallet_reward_estimate_paise) {
-              <p class="reward"><i class="bi bi-stars"></i> You'll earn {{ q.wallet_reward_estimate_paise | inr }} back</p>
+              <p class="reward"><i class="bi bi-stars"></i> You'll earn {{ q.wallet_reward_estimate_paise | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }}</p>
             }
           } @else {
             <div class="skeleton sk-sum"></div>

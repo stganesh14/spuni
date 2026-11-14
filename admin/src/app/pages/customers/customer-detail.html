@@ -8,8 +8,8 @@
   <section class="kpi-row">
     <div class="card mini"><span class="muted small">Orders</span><strong>{{ d.customer.order_count }}</strong></div>
     <div class="card mini"><span class="muted small">Total spent</span><strong>{{ d.customer.total_spent_paise | money }}</strong></div>
-    <div class="card mini"><span class="muted small">Wallet balance</span><strong>{{ d.wallet.balance_paise | money }}</strong></div>
-    <div class="card mini"><span class="muted small">Lifetime earned</span><strong>{{ d.wallet.lifetime_earned_paise | money }}</strong></div>
+    <div class="card mini"><span class="muted small">Wallet balance</span><strong>{{ d.wallet.balance_paise | spuniCash:d.wallet.cash_value_paise }}</strong></div>
+    <div class="card mini"><span class="muted small">Lifetime earned</span><strong>{{ d.wallet.lifetime_earned_paise | spuniCash:d.wallet.cash_value_paise }}</strong></div>
   </section>
 
   <div class="grid-2">
@@ -73,9 +73,9 @@
                       }
                     </td>
                     <td class="num" data-label="Amount" [class.ok-text]="t.type === 'credit'" [class.danger-text]="t.type === 'debit'">
-                      {{ t.type === 'credit' ? '+' : '−' }}{{ t.amount_paise | money }}
+                      {{ t.type === 'credit' ? '+' : '−' }}{{ t.amount_paise | spuniCash:d.wallet.cash_value_paise }}
                     </td>
-                    <td class="num" data-label="Balance">{{ t.balance_after_paise | money }}</td>
+                    <td class="num" data-label="Balance">{{ t.balance_after_paise | spuniCash:d.wallet.cash_value_paise }}</td>
                   </tr>
                 }
               </tbody>
@@ -134,9 +134,9 @@
             <button type="button" role="radio" [attr.aria-checked]="wallet.controls.direction.value === 'credit'" [attr.aria-pressed]="wallet.controls.direction.value === 'credit'" (click)="wallet.controls.direction.setValue('credit')">Credit (+)</button>
             <button type="button" role="radio" [attr.aria-checked]="wallet.controls.direction.value === 'debit'" [attr.aria-pressed]="wallet.controls.direction.value === 'debit'" (click)="wallet.controls.direction.setValue('debit')">Debit (−)</button>
           </div>
-          <app-field label="Amount (₹)" for="w-amount" [required]="true" [control]="wallet.controls.amount">
+          <app-field label="Amount (Spuni Cash)" for="w-amount" [required]="true" [control]="wallet.controls.amount">
             <div class="input-group">
-              <span class="addon">₹</span>
+              <span class="addon">SC</span>
               <input id="w-amount" class="input" inputmode="decimal" formControlName="amount" />
             </div>
           </app-field>

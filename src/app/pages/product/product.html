@@ -92,7 +92,7 @@
         }
 
         <ul class="perks">
-          @if (earn() > 0) { <li><i class="bi bi-wallet2"></i> Earn <b>{{ earn() | inr }}</b> in your SPUNI Wallet</li> }
+          @if (earn() > 0) { <li><i class="bi bi-wallet2"></i> Earn <b>{{ earn() | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }}</b></li> }
           @if (store.info()?.free_shipping_threshold_paise) {
             <li><i class="bi bi-truck"></i> Free shipping over {{ store.info()!.free_shipping_threshold_paise | inr }}</li>
           }

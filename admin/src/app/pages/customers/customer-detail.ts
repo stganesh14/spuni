@@ -5,16 +5,16 @@ import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { applyServerErrors, toApiError } from '../../core/errors';
-import { formatPaise, rupeesToPaise } from '../../core/format';
+import { formatSpuniCash, rupeesToPaise } from '../../core/format';
 import { CustomerDetail } from '../../core/models';
 import { ConfirmService, ToastService } from '../../core/ui.service';
 import { rupees } from '../../core/validators';
-import { DatePipe, HumanizePipe, MoneyPipe } from '../../shared/pipes';
+import { DatePipe, HumanizePipe, MoneyPipe, SpuniCashPipe } from '../../shared/pipes';
 import { FieldComponent, PageHeader, StateComponent, StatusBadge } from '../../shared/ui';
 
 @Component({
   selector: 'app-customer-detail',
-  imports: [ReactiveFormsModule, RouterLink, PageHeader, StateComponent, StatusBadge, FieldComponent, MoneyPipe, DatePipe, HumanizePipe],
+  imports: [ReactiveFormsModule, RouterLink, PageHeader, StateComponent, StatusBadge, FieldComponent, MoneyPipe, SpuniCashPipe, DatePipe, HumanizePipe],
   templateUrl: './customer-detail.html',
 })
 export class CustomerDetailPage {
@@ -111,14 +111,16 @@ export class CustomerDetailPage {
     this.wallet.markAllAsTouched();
     if (this.wallet.invalid) return;
     const v = this.wallet.getRawValue();
-    const amount = rupeesToPaise(v.amount)!;
-    if (v.direction === 'debit' && amount > (this.data()?.wallet.balance_paise ?? 0)) {
-      this.walletError.set(`The wallet only has ${formatPaise(this.data()?.wallet.balance_paise ?? 0)}.`);
+    const cashHundredths = rupeesToPaise(v.amount)!;
+    const cashValuePaise = this.data()?.wallet.cash_value_paise ?? 100;
+    const amountPaise = Math.floor((cashHundredths * cashValuePaise + 50) / 100);
+    if (v.direction === 'debit' && amountPaise > (this.data()?.wallet.balance_paise ?? 0)) {
+      this.walletError.set(`The wallet only has ${formatSpuniCash(this.data()?.wallet.balance_paise ?? 0, cashValuePaise)}.`);
       return;
     }
     const ok = await this.confirm.ask({
       title: v.direction === 'credit' ? 'Credit wallet?' : 'Debit wallet?',
-      message: `${v.direction === 'credit' ? 'Add' : 'Remove'} ${formatPaise(amount)} ${v.direction === 'credit' ? 'to' : 'from'} ${c.email}'s wallet.\nReason: ${v.note}`,
+      message: `${v.direction === 'credit' ? 'Add' : 'Remove'} ${v.amount} Spuni Cash ${v.direction === 'credit' ? 'to' : 'from'} ${c.email}'s wallet.\nReason: ${v.note}`,
       confirmText: v.direction === 'credit' ? 'Credit' : 'Debit',
       danger: v.direction === 'debit',
     });
@@ -127,14 +129,19 @@ export class CustomerDetailPage {
     this.walletError.set(null);
     try {
       const res = await firstValueFrom(
-        this.api.adjustWallet(c.id, { direction: v.direction, amount_paise: amount, note: v.note.trim(), notify_customer: v.notify_customer }),
+        this.api.adjustWallet(c.id, {
+          direction: v.direction,
+          amount_cash_hundredths: cashHundredths,
+          note: v.note.trim(),
+          notify_customer: v.notify_customer,
+        }),
       );
-      this.toast.success(`Wallet ${v.direction === 'credit' ? 'credited' : 'debited'}. New balance ${formatPaise(res.balance_paise)}.`);
+      this.toast.success(`Wallet ${v.direction === 'credit' ? 'credited' : 'debited'}. New balance ${formatSpuniCash(res.balance_paise, res.cash_value_paise)}.`);
       this.wallet.reset({ direction: v.direction, amount: '', note: '', notify_customer: true });
       void this.load();
     } catch (err) {
       const e = toApiError(err);
-      applyServerErrors(this.wallet, e, { amount_paise: 'amount' });
+      applyServerErrors(this.wallet, e, { amount_cash_hundredths: 'amount' });
       this.walletError.set(e.message);
     } finally {
       this.adjusting.set(false);

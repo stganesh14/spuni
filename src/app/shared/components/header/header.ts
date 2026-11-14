@@ -24,13 +24,14 @@ import { StoreService } from '../../../core/cart/store.service';
 import { WishlistService } from '../../../core/cart/wishlist.service';
 import { MotionService } from '../../../core/motion/motion.service';
 import { InrPipe } from '../../pipes/inr.pipe';
+import { SpuniCashPipe } from '../../pipes/spuni-cash.pipe';
 import { MagneticDirective } from '../../directives/magnetic.directive';
 
 type Panel = 'shop' | 'men' | 'women' | null;
 
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, RouterLinkActive, InrPipe, MagneticDirective],
+  imports: [RouterLink, RouterLinkActive, InrPipe, SpuniCashPipe, MagneticDirective],
   templateUrl: './header.html',
   styleUrl: './header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +61,12 @@ export class Header {
   protected readonly featured = computed(() => (this.store.menu()?.featured ?? []).slice(0, 2));
   protected readonly scrolled = computed(() => this.motion.scrollY() > 24);
   protected readonly freeShipping = computed(() => this.store.info()?.free_shipping_threshold_paise ?? 0);
-  protected readonly earnPercent = computed(() => this.store.info()?.wallet_earn_percent ?? 5);
+  protected readonly earnPercent = computed(() => Math.max(
+    this.store.info()?.wallet_tier_1_percent ?? 2,
+    this.store.info()?.wallet_tier_2_percent ?? 3,
+    this.store.info()?.wallet_tier_3_percent ?? 4,
+    this.store.info()?.wallet_tier_4_percent ?? 5,
+  ));
 
   /** Product lists for the Men / Women panels, grouped by category. */
   protected readonly genderMenu = computed(() => {

@@ -55,8 +55,15 @@ async def store_info(db: DB) -> StoreInfoOut:
         support_email=store.support_email, support_phone=store.support_phone,
         shipping_flat_paise=store.shipping_flat_paise,
         free_shipping_threshold_paise=store.free_shipping_threshold_paise,
-        gift_wrap_paise=store.gift_wrap_paise, wallet_earn_percent=store.wallet_earn_percent,
-        wallet_max_redeem_percent=store.wallet_max_redeem_percent, payment_mode=settings.payment_mode,
+        gift_wrap_paise=store.gift_wrap_paise, wallet_max_redeem_percent=store.wallet_max_redeem_percent,
+        wallet_cash_value_paise=store.wallet_cash_value_paise,
+        wallet_tier_1_limit_paise=store.wallet_tier_1_limit_paise,
+        wallet_tier_2_limit_paise=store.wallet_tier_2_limit_paise,
+        wallet_tier_3_limit_paise=store.wallet_tier_3_limit_paise,
+        wallet_tier_1_percent=store.wallet_tier_1_percent,
+        wallet_tier_2_percent=store.wallet_tier_2_percent,
+        wallet_tier_3_percent=store.wallet_tier_3_percent,
+        wallet_tier_4_percent=store.wallet_tier_4_percent, payment_mode=settings.payment_mode,
         razorpay_key_id=settings.razorpay_key_id or None,
     )
 

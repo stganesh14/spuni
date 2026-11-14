@@ -1,6 +1,8 @@
 """SPUNI Wallet ledger. Every balance change writes an immutable transaction row
 while the wallet row is locked, so balances can always be reconciled."""
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import AppError
 from app.models import Wallet, WalletTransaction
 from app.models.enums import WalletTxnReason, WalletTxnType
+
+
+def format_cash(amount_paise: int, cash_value_paise: int) -> str:
+    amount = (Decimal(amount_paise) / Decimal(cash_value_paise)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return f"{amount:,.2f}"
 
 
 async def get_wallet(db: AsyncSession, user_id: int, *, lock: bool = False) -> Wallet:
@@ -69,7 +76,7 @@ async def debit(
         return 0
     if wallet.balance_paise < amount_paise:
         if not allow_partial:
-            raise AppError("Your SPUNI Wallet balance has changed. Please review your order.",
+            raise AppError("Your Spuni Cash balance has changed. Please review your order.",
                            code="wallet_insufficient")
         amount_paise = wallet.balance_paise
         if amount_paise <= 0:

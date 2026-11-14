@@ -8,6 +8,7 @@ from app.models.enums import GiftCardStatus, WalletTxnReason
 from app.services import wallet as wallet_service
 from app.services.email import enqueue_email
 from app.services.orders import normalize_gift_code
+from app.services.store import get_store_settings
 
 
 async def redeem_gift_card(db: AsyncSession, user: User, code: str) -> GiftCard:
@@ -31,10 +32,13 @@ async def redeem_gift_card(db: AsyncSession, user: User, code: str) -> GiftCard:
         db, user_id=user.id, amount_paise=card.amount_paise, reason=WalletTxnReason.GIFT_CARD,
         gift_card_id=card.id, note=f"Gift card from {card.sender_name}",
     )
+    store = await get_store_settings(db)
     await enqueue_email(
-        db, to=user.email, subject="Gift card added to your SPUNI Wallet", template="wallet_credited",
-        context={"amount_paise": card.amount_paise, "reason": f"Your gift card from {card.sender_name} is now in "
-                 "your wallet.", "balance_paise": txn.balance_after_paise if txn else 0},
+        db, to=user.email, subject="Gift card added as Spuni Cash", template="wallet_credited",
+        context={"amount_cash": wallet_service.format_cash(card.amount_paise, store.wallet_cash_value_paise),
+                 "balance_cash": wallet_service.format_cash(
+                     txn.balance_after_paise if txn else 0, store.wallet_cash_value_paise
+                 ), "reason": f"Your gift card from {card.sender_name} is now in your wallet."},
     )
     await db.commit()
     return card

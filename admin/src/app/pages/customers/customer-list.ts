@@ -4,12 +4,12 @@ import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api.service';
 import { toApiError } from '../../core/errors';
 import { CustomerRow, Page } from '../../core/models';
-import { DatePipe, MoneyPipe } from '../../shared/pipes';
+import { DatePipe, MoneyPipe, SpuniCashPipe } from '../../shared/pipes';
 import { PageHeader, PagerComponent, StateComponent, StatusBadge } from '../../shared/ui';
 
 @Component({
   selector: 'app-customer-list',
-  imports: [RouterLink, PageHeader, StateComponent, PagerComponent, StatusBadge, MoneyPipe, DatePipe],
+  imports: [RouterLink, PageHeader, StateComponent, PagerComponent, StatusBadge, MoneyPipe, SpuniCashPipe, DatePipe],
   template: `
     <app-page-header title="Customers" eyebrow="Sales" [subtitle]="result() ? result()!.total + ' account(s)' : ''" />
 
@@ -66,7 +66,7 @@ import { PageHeader, PagerComponent, StateComponent, StatusBadge } from '../../s
                     <td data-label="Phone">{{ c.phone || '—' }}</td>
                     <td class="num" data-label="Orders">{{ c.order_count }}</td>
                     <td class="num" data-label="Spent">{{ c.total_spent_paise | money }}</td>
-                    <td class="num" data-label="Wallet">{{ c.wallet_balance_paise | money }}</td>
+                    <td class="num" data-label="Wallet">{{ c.wallet_balance_paise | spuniCash:c.wallet_cash_value_paise }}</td>
                     <td data-label="Last sign-in" class="nowrap">{{ c.last_login_at | dt }}</td>
                     <td data-label="Status">
                       @if (c.role === 'admin') {

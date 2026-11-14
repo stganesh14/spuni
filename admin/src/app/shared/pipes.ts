@@ -1,11 +1,18 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
 import { API_BASE, mediaUrl } from '../core/api-base';
-import { formatDate, formatPaise, humanize } from '../core/format';
+import { formatDate, formatPaise, formatSpuniCash, humanize } from '../core/format';
 
 @Pipe({ name: 'money' })
 export class MoneyPipe implements PipeTransform {
   transform(paise: number | null | undefined): string {
     return formatPaise(paise);
+  }
+}
+
+@Pipe({ name: 'spuniCash' })
+export class SpuniCashPipe implements PipeTransform {
+  transform(paise: number | null | undefined, cashValuePaise = 100): string {
+    return formatSpuniCash(paise, cashValuePaise);
   }
 }
 
@@ -31,4 +38,4 @@ export class MediaPipe implements PipeTransform {
   }
 }
 
-export const PIPES = [MoneyPipe, DatePipe, HumanizePipe, MediaPipe] as const;
+export const PIPES = [MoneyPipe, SpuniCashPipe, DatePipe, HumanizePipe, MediaPipe] as const;

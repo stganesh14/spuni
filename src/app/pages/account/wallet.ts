@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -9,18 +9,20 @@ import { StoreService } from '../../core/cart/store.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { WALLET_REASON_LABEL } from '../../core/utils/labels';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 @Component({
   selector: 'app-account-wallet',
-  imports: [FormsModule, RouterLink, DatePipe, InrPipe],
+  imports: [FormsModule, RouterLink, DatePipe, InrPipe, SpuniCashPipe],
   template: `
     <section class="hero-card">
       <div class="coin" aria-hidden="true">S</div>
       <small>Available balance</small>
-      <strong>{{ (wallet()?.balance_paise ?? 0) | inr }}</strong>
-      <p>Lifetime earned {{ (wallet()?.lifetime_earned_paise ?? 0) | inr }}</p>
+      <strong>{{ (wallet()?.balance_paise ?? 0) | spuniCash:cashValuePaise() }}</strong>
+      <p>Lifetime earned {{ (wallet()?.lifetime_earned_paise ?? 0) | spuniCash:cashValuePaise() }}</p>
+      <p>1 Spuni Cash = {{ cashValuePaise() | inr }}</p>
       <div class="how">
-        <span><i class="bi bi-bag-check"></i> Earn {{ wallet()?.earn_percent ?? 5 }}% of every order</span>
+        <span><i class="bi bi-bag-check"></i> Earn {{ earnRange() }}% based on order value</span>
         <span><i class="bi bi-cash-coin"></i> Use up to {{ wallet()?.max_redeem_percent ?? 20 }}% on your next one</span>
         <span><i class="bi bi-gift"></i> Gift cards land here too</span>
       </div>
@@ -45,7 +47,7 @@ import { InrPipe } from '../../shared/pipes/inr.pipe';
              [class.credit]="t.type === 'credit'"></i>
           <span class="meta"><b>{{ reasons[t.reason] || t.reason }}</b>
             <small>{{ t.created_at | date: 'd MMM y' }}@if (t.order_number) { · <a [routerLink]="['/account/orders', t.order_number]">{{ t.order_number }}</a> }</small></span>
-          <b [class.credit]="t.type === 'credit'">{{ t.type === 'credit' ? '+' : '−' }}{{ t.amount_paise | inr }}</b>
+          <b [class.credit]="t.type === 'credit'">{{ t.type === 'credit' ? '+' : '−' }}{{ t.amount_paise | spuniCash:cashValuePaise() }}</b>
         </div>
       } @empty {
         <p class="muted">No activity yet. Your first order earns points automatically.</p>
@@ -82,11 +84,24 @@ export class AccountWallet {
   private readonly toast = inject(ToastService);
   protected readonly reasons = WALLET_REASON_LABEL;
   protected readonly wallet = signal<Wallet | null>(null);
+  protected readonly cashValuePaise = computed(() => this.store.info()?.wallet_cash_value_paise ?? 100);
+  protected readonly earnRange = computed(() => {
+    const info = this.store.info();
+    if (!info) return '2–5';
+    const rates = [
+      info.wallet_tier_1_percent,
+      info.wallet_tier_2_percent,
+      info.wallet_tier_3_percent,
+      info.wallet_tier_4_percent,
+    ];
+    return `${Math.min(...rates)}–${Math.max(...rates)}`;
+  });
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected code = '';
 
   constructor() {
+    this.store.loadInfo().subscribe();
     this.load();
   }
 

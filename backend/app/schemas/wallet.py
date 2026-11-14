@@ -20,7 +20,6 @@ class WalletTxnOut(OutputModel):
 class WalletOut(OutputModel):
     balance_paise: int
     lifetime_earned_paise: int
-    earn_percent: int
     max_redeem_percent: int
     transactions: list[WalletTxnOut]
 

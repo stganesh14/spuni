@@ -35,7 +35,7 @@ from app.schemas.wallet import GiftCardPurchaseIn
 from app.services import payment_gateway as gateway
 from app.services import wallet as wallet_service
 from app.services.email import enqueue_email, rupees
-from app.services.pricing import price_cart
+from app.services.pricing import price_cart, reward_for
 from app.services.store import get_store_settings
 
 logger = logging.getLogger("spuni.orders")
@@ -62,7 +62,7 @@ STATUS_COPY = {
                             "Your order has been delivered. We hope it ages beautifully with you."),
     OrderStatus.CANCELLED: ("Your order has been cancelled.",
                             "Your order was cancelled. Any amount paid will be refunded to the original payment "
-                            "method within 5-7 working days, and wallet points used have been returned."),
+                            "method within 5-7 working days, and Spuni Cash used has been returned."),
     OrderStatus.REFUNDED: ("Your refund has been issued.",
                            "We have issued a refund for your order. It usually reflects within 5-7 working days."),
 }
@@ -387,7 +387,7 @@ async def confirm_payment(
 async def _re_reserve(db: AsyncSession, order: Order) -> bool:
     """Late payment for an expired order: take the stock again if it is still there.
 
-    Orders that used wallet points are not revived (the points were already
+    Orders that used Spuni Cash are not revived (the cash was already
     returned); they are refunded instead so the ledger stays exact."""
     if order.wallet_redeemed_paise:
         return False
@@ -421,16 +421,14 @@ async def _mark_paid(db: AsyncSession, order: Order, payment: Payment | None) ->
     order.paid_at = now
     order.expires_at = None
     order.status = OrderStatus.CONFIRMED
-    _event(order, OrderStatus.CONFIRMED, "Payment received." if payment else "Paid with SPUNI Wallet.")
+    _event(order, OrderStatus.CONFIRMED, "Payment received." if payment else "Paid with Spuni Cash.")
 
     if order.order_type == OrderType.GIFT_CARD:
         await _activate_gift_card(db, order)
         return
 
     store = await get_store_settings(db)
-    reward = order.subtotal_paise - order.wallet_redeemed_paise
-    reward = max(0, reward) * store.wallet_earn_percent // 100
-    reward -= reward % 100
+    reward = reward_for(order.subtotal_paise, order.wallet_redeemed_paise, store)
     if reward > 0:
         txn = await wallet_service.credit(
             db, user_id=order.user_id, amount_paise=reward, reason=WalletTxnReason.ORDER_REWARD,
@@ -445,7 +443,11 @@ async def _mark_paid(db: AsyncSession, order: Order, payment: Payment | None) ->
             "name": order.ship_name, "number": order.number, "items": _items_context(order),
             "subtotal_paise": order.subtotal_paise, "shipping_paise": order.shipping_paise,
             "gift_wrap_paise": order.gift_wrap_paise, "wallet_redeemed_paise": order.wallet_redeemed_paise,
+            "wallet_redeemed_cash": wallet_service.format_cash(
+                order.wallet_redeemed_paise, store.wallet_cash_value_paise
+            ),
             "total_paise": order.total_paise, "wallet_earned_paise": order.wallet_earned_paise,
+            "wallet_earned_cash": wallet_service.format_cash(order.wallet_earned_paise, store.wallet_cash_value_paise),
             "address": _address_line(order),
         },
     )

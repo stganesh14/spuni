@@ -48,7 +48,7 @@
               @if (o.payment_status === 'paid') {
                 of <strong>{{ o.total_paise | money }}</strong>
               }
-              and reverse wallet points. You'll be asked to confirm.
+              and reverse Spuni Cash. You'll be asked to confirm.
             </p>
           }
           <app-field label="Note (optional)" for="o-note" [control]="statusForm.controls.note" hint="Saved in the timeline and included in the customer email.">
@@ -123,11 +123,11 @@
                 <tr><td>Gift wrap</td><td>{{ o.gift_wrap_paise | money }}</td></tr>
               }
               @if (o.wallet_redeemed_paise) {
-                <tr><td>Wallet redeemed</td><td class="danger-text">−{{ o.wallet_redeemed_paise | money }}</td></tr>
+                <tr><td>Spuni Cash redeemed (₹ value)</td><td class="danger-text">−{{ o.wallet_redeemed_paise | money }}</td></tr>
               }
               <tr class="grand"><td>Total</td><td>{{ o.total_paise | money }}</td></tr>
               @if (o.wallet_earned_paise) {
-                <tr><td class="muted">Wallet points earned</td><td class="ok-text">+{{ o.wallet_earned_paise | money }}</td></tr>
+                <tr><td class="muted">Spuni Cash earned (₹ value)</td><td class="ok-text">+{{ o.wallet_earned_paise | money }}</td></tr>
               }
             </tbody>
           </table>

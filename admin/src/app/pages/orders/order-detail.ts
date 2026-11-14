@@ -131,8 +131,8 @@ export class OrderDetailPage {
           (paid
             ? `The payment of ${formatPaise(o.total_paise)} will be refunded to the customer's original payment method`
             : 'No payment was captured, so nothing will be refunded') +
-          (o.wallet_redeemed_paise ? `, wallet points used (${formatPaise(o.wallet_redeemed_paise)}) are returned` : '') +
-          (o.wallet_earned_paise ? `, and points earned on this order are reversed` : '') +
+          (o.wallet_redeemed_paise ? `, Spuni Cash used (${formatPaise(o.wallet_redeemed_paise)} rupee value) is returned` : '') +
+          (o.wallet_earned_paise ? `, and Spuni Cash earned on this order is reversed` : '') +
           (s === 'cancelled' ? '. Reserved stock is released.' : '.') +
           '\n\nThis cannot be undone.',
         confirmText: s === 'cancelled' ? 'Cancel order' : 'Refund order',

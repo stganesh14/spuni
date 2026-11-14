@@ -50,7 +50,7 @@ export class HomePage {
     'Handcrafted in Chennai',
     'Vegan leather that ages beautifully',
     'Free monogramming',
-    'Earn wallet points on every order',
+    'Earn Spuni Cash on eligible orders',
     'New drops every month',
   ];
   protected readonly craft = ['Cut', 'Stitched', 'Burnished', 'Carried', 'Loved', 'Passed on'];

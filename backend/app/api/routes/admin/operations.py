@@ -237,6 +237,7 @@ async def list_customers(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> Page[AdminCustomerRow]:
+    store = await get_store_settings(db)
     stats = (
         select(Order.user_id, func.count(Order.id).label("n"),
                func.coalesce(func.sum(case((Order.payment_status == PaymentStatus.PAID, Order.total_paise),
@@ -261,6 +262,7 @@ async def list_customers(
     for user, count, spent, balance in rows:
         row = AdminCustomerRow.model_validate(user)
         row.order_count, row.total_spent_paise, row.wallet_balance_paise = int(count), int(spent), int(balance)
+        row.wallet_cash_value_paise = store.wallet_cash_value_paise
         items.append(row)
     return Page[AdminCustomerRow](items=items, **paginate_meta(total, page, page_size))
 
@@ -271,6 +273,7 @@ async def get_customer(user_id: int, db: DB) -> dict:
     if user is None:
         raise NotFound("Customer not found.")
     wallet = await wallet_service.get_wallet(db, user_id)
+    store = await get_store_settings(db)
     orders = (
         await db.execute(select(Order).where(Order.user_id == user_id).options(
             selectinload(Order.items), selectinload(Order.user)).order_by(Order.created_at.desc()).limit(50))
@@ -283,10 +286,12 @@ async def get_customer(user_id: int, db: DB) -> dict:
     return {
         "customer": AdminCustomerRow.model_validate(user).model_copy(update={
             "order_count": len(orders), "wallet_balance_paise": wallet.balance_paise,
+            "wallet_cash_value_paise": store.wallet_cash_value_paise,
             "total_spent_paise": sum(o.total_paise for o in orders if o.payment_status == PaymentStatus.PAID),
         }),
         "orders": [_order_row(o) for o in orders],
         "wallet": {"balance_paise": wallet.balance_paise, "lifetime_earned_paise": wallet.lifetime_earned_paise,
+                   "cash_value_paise": store.wallet_cash_value_paise,
                    "transactions": [WalletTxnOut.model_validate(t) for t in txns]},
     }
 
@@ -315,25 +320,32 @@ async def adjust_wallet(user_id: int, body: WalletAdjustIn, db: DB, admin: Admin
     user = await db.get(User, user_id)
     if user is None:
         raise NotFound("Customer not found.")
+    store = await get_store_settings(db)
+    amount_paise = (
+        body.amount_cash_hundredths * store.wallet_cash_value_paise + 50
+    ) // 100
     if body.direction == "credit":
-        txn = await wallet_service.credit(db, user_id=user_id, amount_paise=body.amount_paise,
+        txn = await wallet_service.credit(db, user_id=user_id, amount_paise=amount_paise,
                                           reason=WalletTxnReason.ADMIN_ADJUST, note=body.note,
                                           created_by_id=admin.id)
         balance = txn.balance_after_paise if txn else 0
         if body.notify_customer:
-            await enqueue_email(db, to=user.email, subject="Points added to your SPUNI Wallet",
+            await enqueue_email(db, to=user.email, subject="Spuni Cash added to your wallet",
                                 template="wallet_credited",
-                                context={"amount_paise": body.amount_paise, "reason": body.note,
-                                         "balance_paise": balance})
+                                context={"amount_cash": wallet_service.format_cash(
+                                    amount_paise, store.wallet_cash_value_paise
+                                ), "reason": body.note, "balance_cash": wallet_service.format_cash(
+                                    balance, store.wallet_cash_value_paise
+                                )})
     else:
         wallet = await wallet_service.get_wallet(db, user_id, lock=True)
-        if wallet.balance_paise < body.amount_paise:
+        if wallet.balance_paise < amount_paise:
             raise AppError("The wallet does not have enough balance for this debit.", code="wallet_insufficient")
-        await wallet_service.debit(db, user_id=user_id, amount_paise=body.amount_paise,
+        await wallet_service.debit(db, user_id=user_id, amount_paise=amount_paise,
                                    reason=WalletTxnReason.ADMIN_ADJUST, note=body.note, created_by_id=admin.id)
         balance = wallet.balance_paise
     await db.commit()
-    return {"balance_paise": balance}
+    return {"balance_paise": balance, "cash_value_paise": store.wallet_cash_value_paise}
 
 
 # --------------------------------------------------------------- gift cards

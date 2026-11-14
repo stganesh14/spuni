@@ -304,6 +304,15 @@ class StoreSettings(Base):
         CheckConstraint("id = 1", name="singleton"),
         CheckConstraint("wallet_earn_percent BETWEEN 0 AND 50", name="earn_percent_range"),
         CheckConstraint("wallet_max_redeem_percent BETWEEN 0 AND 100", name="redeem_percent_range"),
+        CheckConstraint("wallet_cash_value_paise >= 100", name="cash_value_positive"),
+        CheckConstraint("wallet_tier_1_limit_paise > 0", name="tier_1_limit_positive"),
+        CheckConstraint("wallet_tier_2_limit_paise > wallet_tier_1_limit_paise", name="tier_2_limit_order"),
+        CheckConstraint("wallet_tier_3_limit_paise > wallet_tier_2_limit_paise", name="tier_3_limit_order"),
+        CheckConstraint(
+            "wallet_tier_1_percent BETWEEN 0 AND 50 AND wallet_tier_2_percent BETWEEN 0 AND 50 "
+            "AND wallet_tier_3_percent BETWEEN 0 AND 50 AND wallet_tier_4_percent BETWEEN 0 AND 50",
+            name="tier_percent_range",
+        ),
         CheckConstraint("shipping_flat_paise >= 0", name="shipping_non_negative"),
         CheckConstraint("free_shipping_threshold_paise >= 0", name="threshold_non_negative"),
         CheckConstraint("gift_wrap_paise >= 0", name="gift_wrap_non_negative"),
@@ -316,6 +325,20 @@ class StoreSettings(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     wallet_earn_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=5, server_default="5")
     wallet_max_redeem_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=20, server_default="20")
+    wallet_cash_value_paise: Mapped[int] = mapped_column(BigInteger, nullable=False, default=100, server_default="100")
+    wallet_tier_1_limit_paise: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=200000, server_default="200000"
+    )
+    wallet_tier_2_limit_paise: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=500000, server_default="500000"
+    )
+    wallet_tier_3_limit_paise: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=1000000, server_default="1000000"
+    )
+    wallet_tier_1_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=2, server_default="2")
+    wallet_tier_2_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=3, server_default="3")
+    wallet_tier_3_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=4, server_default="4")
+    wallet_tier_4_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=5, server_default="5")
     shipping_flat_paise: Mapped[int] = mapped_column(BigInteger, nullable=False, default=15000, server_default="15000")
     free_shipping_threshold_paise: Mapped[int] = mapped_column(
         BigInteger, nullable=False, default=300000, server_default="300000"

@@ -4,11 +4,11 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../../core/auth/auth.service';
 import { StoreService } from '../../core/cart/store.service';
 import { ToastService } from '../../core/ui/toast.service';
-import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 @Component({
   selector: 'app-account-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, InrPipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, SpuniCashPipe],
   template: `
     <div class="page account">
       <div class="container">
@@ -18,8 +18,8 @@ import { InrPipe } from '../../shared/pipes/inr.pipe';
             <h1 class="title">Hello, <em>{{ auth.firstName() || 'there' }}.</em></h1>
           </div>
           <a class="wallet-card" routerLink="/account/wallet">
-            <small>SPUNI Wallet</small>
-            <b>{{ (store.walletBalance() ?? 0) | inr }}</b>
+            <small>Spuni Cash</small>
+            <b>{{ (store.walletBalance() ?? 0) | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }}</b>
             <i class="bi bi-wallet2"></i>
           </a>
         </header>

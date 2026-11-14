@@ -10,6 +10,12 @@ export function formatPaise(paise: number | null | undefined): string {
   return `${sign}₹${abs % 100 === 0 ? whole.format(rupees) : fraction.format(rupees)}`;
 }
 
+export function formatSpuniCash(paise: number | null | undefined, cashValuePaise: number): string {
+  if (paise === null || paise === undefined || Number.isNaN(paise) || cashValuePaise <= 0) return '—';
+  const amount = paise / cashValuePaise;
+  return `${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(amount)} Spuni Cash`;
+}
+
 /** Compact for chart axes: ₹1.2L, ₹3.4Cr, ₹12k. */
 export function formatPaiseShort(paise: number): string {
   const r = paise / 100;

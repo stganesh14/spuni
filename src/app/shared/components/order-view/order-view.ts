@@ -1,20 +1,23 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { StoreService } from '../../../core/cart/store.service';
 import { Order } from '../../../core/api/models';
 import { ORDER_STATUS_LABEL, ORDER_STEPS, statusTone } from '../../../core/utils/labels';
 import { InrPipe } from '../../pipes/inr.pipe';
+import { SpuniCashPipe } from '../../pipes/spuni-cash.pipe';
 
 /** Order details: progress timeline, items, totals, delivery and tracking. */
 @Component({
   selector: 'app-order-view',
-  imports: [RouterLink, DatePipe, InrPipe],
+  imports: [RouterLink, DatePipe, InrPipe, SpuniCashPipe],
   templateUrl: './order-view.html',
   styleUrl: './order-view.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrderView {
+  protected readonly store = inject(StoreService);
   readonly order = input.required<Order>();
   readonly busy = input(false);
   readonly cancel = output<string | null>();

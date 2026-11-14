@@ -19,13 +19,34 @@
 
     <div class="grid-halves">
       <section class="card" style="margin: 0">
-        <h2 class="section-title">SPUNI Wallet</h2>
+        <h2 class="section-title">Spuni Cash rewards</h2>
         <div class="form-grid">
-          <app-field label="Points earned (%)" for="s-earn" [required]="true" [control]="form.controls.wallet_earn_percent" hint="Of each paid order, 0–50%.">
-            <input id="s-earn" class="input" type="number" min="0" max="50" formControlName="wallet_earn_percent" />
+          <app-field class="span-2" label="Value of 1 Spuni Cash (₹)" for="s-cash-value" [required]="true" [control]="form.controls.wallet_cash_value" hint="Customers see and redeem wallet balances as Spuni Cash at this conversion rate.">
+            <div class="input-group"><span class="addon">₹</span><input id="s-cash-value" class="input" inputmode="decimal" formControlName="wallet_cash_value" /></div>
           </app-field>
           <app-field label="Max redeemable (%)" for="s-redeem" [required]="true" [control]="form.controls.wallet_max_redeem_percent" hint="Of an order total, 0–100%.">
             <input id="s-redeem" class="input" type="number" min="0" max="100" formControlName="wallet_max_redeem_percent" />
+          </app-field>
+          <app-field label="Below (₹)" for="s-tier-1-limit" [required]="true" [control]="form.controls.wallet_tier_1_limit">
+            <div class="input-group"><span class="addon">₹</span><input id="s-tier-1-limit" class="input" inputmode="decimal" formControlName="wallet_tier_1_limit" /></div>
+          </app-field>
+          <app-field label="Reward (%)" for="s-tier-1-percent" [required]="true" [control]="form.controls.wallet_tier_1_percent">
+            <input id="s-tier-1-percent" class="input" type="number" min="0" max="50" formControlName="wallet_tier_1_percent" />
+          </app-field>
+          <app-field label="From (₹)" for="s-tier-2-limit" [required]="true" [control]="form.controls.wallet_tier_2_limit">
+            <div class="input-group"><span class="addon">₹</span><input id="s-tier-2-limit" class="input" inputmode="decimal" formControlName="wallet_tier_2_limit" /></div>
+          </app-field>
+          <app-field label="Reward (%)" for="s-tier-2-percent" [required]="true" [control]="form.controls.wallet_tier_2_percent">
+            <input id="s-tier-2-percent" class="input" type="number" min="0" max="50" formControlName="wallet_tier_2_percent" />
+          </app-field>
+          <app-field label="From (₹)" for="s-tier-3-limit" [required]="true" [control]="form.controls.wallet_tier_3_limit">
+            <div class="input-group"><span class="addon">₹</span><input id="s-tier-3-limit" class="input" inputmode="decimal" formControlName="wallet_tier_3_limit" /></div>
+          </app-field>
+          <app-field label="Reward (%)" for="s-tier-3-percent" [required]="true" [control]="form.controls.wallet_tier_3_percent">
+            <input id="s-tier-3-percent" class="input" type="number" min="0" max="50" formControlName="wallet_tier_3_percent" />
+          </app-field>
+          <app-field label="Above final limit (%)" for="s-tier-4-percent" [required]="true" [control]="form.controls.wallet_tier_4_percent">
+            <input id="s-tier-4-percent" class="input" type="number" min="0" max="50" formControlName="wallet_tier_4_percent" />
           </app-field>
         </div>
       </section>

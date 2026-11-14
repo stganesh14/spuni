@@ -8,10 +8,11 @@ import { StoreService } from '../../core/cart/store.service';
 import { SeoService } from '../../core/seo/seo.service';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 @Component({
   selector: 'app-cart-page',
-  imports: [RouterLink, InrPipe, EmptyState],
+  imports: [RouterLink, InrPipe, SpuniCashPipe, EmptyState],
   templateUrl: './cart.html',
   styleUrl: './cart.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

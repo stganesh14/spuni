@@ -148,8 +148,15 @@ export interface StoreInfo {
   shipping_flat_paise: number;
   free_shipping_threshold_paise: number;
   gift_wrap_paise: number;
-  wallet_earn_percent: number;
   wallet_max_redeem_percent: number;
+  wallet_cash_value_paise: number;
+  wallet_tier_1_limit_paise: number;
+  wallet_tier_2_limit_paise: number;
+  wallet_tier_3_limit_paise: number;
+  wallet_tier_1_percent: number;
+  wallet_tier_2_percent: number;
+  wallet_tier_3_percent: number;
+  wallet_tier_4_percent: number;
   payment_mode: 'mock' | 'razorpay';
   razorpay_key_id: string | null;
 }
@@ -340,7 +347,6 @@ export interface WalletTxn {
 export interface Wallet {
   balance_paise: number;
   lifetime_earned_paise: number;
-  earn_percent: number;
   max_redeem_percent: number;
   transactions: WalletTxn[];
 }

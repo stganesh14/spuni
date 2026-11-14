@@ -1,10 +1,12 @@
 import uuid
+from types import SimpleNamespace
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
 from app.models import Product
+from app.services.pricing import reward_for
 from tests.conftest import login
 
 ADDRESS = {"full_name": "Ravi Kumar", "phone": "9876543210", "line1": "12 Anna Salai", "city": "Chennai",
@@ -74,7 +76,7 @@ async def test_full_purchase_with_wallet_and_cancel(client, catalog):
     assert r.status_code == 200, r.text
     order = r.json()
     assert order["status"] == "confirmed" and order["payment_status"] == "paid"
-    assert order["wallet_earned_paise"] == 19900  # 5% of 3999 rounded down to whole rupees
+    assert order["wallet_earned_paise"] == 11900  # 3% of 3999 rounded down to whole rupees
 
     w = (await client.get("/api/v1/account/wallet", headers=auth(token))).json()
     assert w["balance_paise"] == 19900
@@ -84,11 +86,11 @@ async def test_full_purchase_with_wallet_and_cancel(client, catalog):
         "items": [{"product_id": catalog["belt"], "quantity": 1}], "address": ADDRESS, "use_wallet": True,
         "idempotency_key": uuid.uuid4().hex})
     init2 = r.json()
-    assert init2["amount_paise"] == 249900 + 15000 - 19900
+    assert init2["amount_paise"] == 249900 + 15000 - 11900
     r = await pay(client, token, init2)
-    assert r.json()["wallet_redeemed_paise"] == 19900
+    assert r.json()["wallet_redeemed_paise"] == 11900
     w = (await client.get("/api/v1/account/wallet", headers=auth(token))).json()
-    reward2 = (249900 - 19900) * 5 // 100
+    reward2 = (249900 - 11900) * 3 // 100
     reward2 -= reward2 % 100
     assert w["balance_paise"] == reward2
 
@@ -99,7 +101,7 @@ async def test_full_purchase_with_wallet_and_cancel(client, catalog):
     assert r.json()["status"] == "cancelled"
     assert await stock(catalog["belt"]) == belt_before + 1
     w = (await client.get("/api/v1/account/wallet", headers=auth(token))).json()
-    assert w["balance_paise"] == 19900
+    assert w["balance_paise"] == 11900
 
     async with SessionLocal() as s:
         emails = (await s.execute(text("SELECT template FROM email_outbox WHERE to_email='buyer@example.com'"))).scalars().all()
@@ -215,3 +217,22 @@ async def test_database_constraints_backstop(catalog):
             raise AssertionError("uppercase email accepted")
         except IntegrityError:
             await s.rollback()
+
+
+def test_tiered_rewards_use_configured_order_boundaries():
+    settings = SimpleNamespace(
+        wallet_tier_1_limit_paise=200000,
+        wallet_tier_2_limit_paise=500000,
+        wallet_tier_3_limit_paise=1000000,
+        wallet_tier_1_percent=2,
+        wallet_tier_2_percent=3,
+        wallet_tier_3_percent=4,
+        wallet_tier_4_percent=5,
+    )
+    assert reward_for(199900, 0, settings) == 3900
+    assert reward_for(200000, 0, settings) == 6000
+    assert reward_for(499900, 0, settings) == 14900
+    assert reward_for(500000, 0, settings) == 20000
+    assert reward_for(1000000, 0, settings) == 40000
+    assert reward_for(1000100, 0, settings) == 50000
+    assert reward_for(200000, 10000, settings) == 5700

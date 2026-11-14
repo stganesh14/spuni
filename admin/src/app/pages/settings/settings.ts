@@ -26,12 +26,26 @@ function giftRange(g: unknown): ValidationErrors | null {
   return null;
 }
 
+function walletTierRanges(g: unknown): ValidationErrors | null {
+  const group = g as FormGroup;
+  const first = rupeesToPaise(group.get('wallet_tier_1_limit')?.value);
+  const second = rupeesToPaise(group.get('wallet_tier_2_limit')?.value);
+  const third = rupeesToPaise(group.get('wallet_tier_3_limit')?.value);
+  return first !== null && second !== null && third !== null && first < second && second < third
+    ? null
+    : { walletTierRanges: 'Reward tier limits must be strictly increasing.' };
+}
+
 const ALIASES: Record<string, string> = {
   shipping_flat_paise: 'shipping_flat',
   free_shipping_threshold_paise: 'free_shipping_threshold',
   gift_wrap_paise: 'gift_wrap',
   gift_card_min_paise: 'gift_card_min',
   gift_card_max_paise: 'gift_card_max',
+  wallet_cash_value_paise: 'wallet_cash_value',
+  wallet_tier_1_limit_paise: 'wallet_tier_1_limit',
+  wallet_tier_2_limit_paise: 'wallet_tier_2_limit',
+  wallet_tier_3_limit_paise: 'wallet_tier_3_limit',
 };
 
 @Component({
@@ -52,8 +66,15 @@ export class SettingsPage {
 
   protected readonly form = new FormGroup(
     {
-      wallet_earn_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 50) }),
       wallet_max_redeem_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 100) }),
+      wallet_cash_value: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 1 })] }),
+      wallet_tier_1_limit: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 1 })] }),
+      wallet_tier_2_limit: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 1 })] }),
+      wallet_tier_3_limit: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 1 })] }),
+      wallet_tier_1_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 50) }),
+      wallet_tier_2_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 50) }),
+      wallet_tier_3_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 50) }),
+      wallet_tier_4_percent: new FormControl('', { nonNullable: true, validators: intRange(0, 50) }),
       shipping_flat: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 0 })] }),
       free_shipping_threshold: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 0 })] }),
       gift_wrap: new FormControl('', { nonNullable: true, validators: [rupees({ required: true, min: 0 })] }),
@@ -66,7 +87,7 @@ export class SettingsPage {
       }),
       support_phone: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(PATTERNS.phone)] }),
     },
-    { validators: [giftRange] },
+    { validators: [giftRange, walletTierRanges] },
   );
 
   constructor() {
@@ -87,8 +108,15 @@ export class SettingsPage {
 
   private patch(s: StoreSettings): void {
     this.form.reset({
-      wallet_earn_percent: String(s.wallet_earn_percent),
       wallet_max_redeem_percent: String(s.wallet_max_redeem_percent),
+      wallet_cash_value: paiseToRupees(s.wallet_cash_value_paise),
+      wallet_tier_1_limit: paiseToRupees(s.wallet_tier_1_limit_paise),
+      wallet_tier_2_limit: paiseToRupees(s.wallet_tier_2_limit_paise),
+      wallet_tier_3_limit: paiseToRupees(s.wallet_tier_3_limit_paise),
+      wallet_tier_1_percent: String(s.wallet_tier_1_percent),
+      wallet_tier_2_percent: String(s.wallet_tier_2_percent),
+      wallet_tier_3_percent: String(s.wallet_tier_3_percent),
+      wallet_tier_4_percent: String(s.wallet_tier_4_percent),
       shipping_flat: paiseToRupees(s.shipping_flat_paise),
       free_shipping_threshold: paiseToRupees(s.free_shipping_threshold_paise),
       gift_wrap: paiseToRupees(s.gift_wrap_paise),
@@ -111,8 +139,15 @@ export class SettingsPage {
     }
     const v = this.form.getRawValue();
     const body: StoreSettings = {
-      wallet_earn_percent: Number(v.wallet_earn_percent),
       wallet_max_redeem_percent: Number(v.wallet_max_redeem_percent),
+      wallet_cash_value_paise: rupeesToPaise(v.wallet_cash_value)!,
+      wallet_tier_1_limit_paise: rupeesToPaise(v.wallet_tier_1_limit)!,
+      wallet_tier_2_limit_paise: rupeesToPaise(v.wallet_tier_2_limit)!,
+      wallet_tier_3_limit_paise: rupeesToPaise(v.wallet_tier_3_limit)!,
+      wallet_tier_1_percent: Number(v.wallet_tier_1_percent),
+      wallet_tier_2_percent: Number(v.wallet_tier_2_percent),
+      wallet_tier_3_percent: Number(v.wallet_tier_3_percent),
+      wallet_tier_4_percent: Number(v.wallet_tier_4_percent),
       shipping_flat_paise: rupeesToPaise(v.shipping_flat)!,
       free_shipping_threshold_paise: rupeesToPaise(v.free_shipping_threshold)!,
       gift_wrap_paise: rupeesToPaise(v.gift_wrap)!,

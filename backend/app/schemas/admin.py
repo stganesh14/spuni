@@ -256,6 +256,7 @@ class AdminCustomerRow(OutputModel):
     order_count: int = 0
     total_spent_paise: int = 0
     wallet_balance_paise: int = 0
+    wallet_cash_value_paise: int = 100
     last_login_at: datetime | None
     created_at: datetime
 
@@ -267,7 +268,7 @@ class CustomerUpdateIn(InputModel):
 
 class WalletAdjustIn(InputModel):
     direction: Literal["credit", "debit"]
-    amount_paise: PositivePaise
+    amount_cash_hundredths: PositivePaise
     note: SafeText(3, 300)
     notify_customer: bool = True
 
@@ -304,8 +305,15 @@ class AdminCustomizationOut(OutputModel):
 
 
 class StoreSettingsIn(InputModel):
-    wallet_earn_percent: int = Field(ge=0, le=50)
     wallet_max_redeem_percent: int = Field(ge=0, le=100)
+    wallet_cash_value_paise: PositivePaise
+    wallet_tier_1_limit_paise: PositivePaise
+    wallet_tier_2_limit_paise: PositivePaise
+    wallet_tier_3_limit_paise: PositivePaise
+    wallet_tier_1_percent: int = Field(ge=0, le=50)
+    wallet_tier_2_percent: int = Field(ge=0, le=50)
+    wallet_tier_3_percent: int = Field(ge=0, le=50)
+    wallet_tier_4_percent: int = Field(ge=0, le=50)
     shipping_flat_paise: Paise
     free_shipping_threshold_paise: Paise
     gift_wrap_paise: Paise
@@ -317,6 +325,13 @@ class StoreSettingsIn(InputModel):
 
     @model_validator(mode="after")
     def _ranges(self) -> "StoreSettingsIn":
+        if self.wallet_cash_value_paise < 100:
+            raise ValueError("one Spuni Cash must be worth at least ₹1")
+        if not (
+            self.wallet_tier_1_limit_paise < self.wallet_tier_2_limit_paise
+            < self.wallet_tier_3_limit_paise
+        ):
+            raise ValueError("wallet reward limits must be strictly increasing")
         if self.gift_card_max_paise < self.gift_card_min_paise:
             raise ValueError("gift card maximum must be at least the minimum")
         return self

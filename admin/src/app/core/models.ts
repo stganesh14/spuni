@@ -309,6 +309,7 @@ export interface CustomerRow {
   order_count: number;
   total_spent_paise: number;
   wallet_balance_paise: number;
+  wallet_cash_value_paise: number;
   last_login_at: string | null;
   created_at: string;
 }
@@ -327,12 +328,17 @@ export interface WalletTxn {
 export interface CustomerDetail {
   customer: CustomerRow;
   orders: OrderRow[];
-  wallet: { balance_paise: number; lifetime_earned_paise: number; transactions: WalletTxn[] };
+  wallet: {
+    balance_paise: number;
+    lifetime_earned_paise: number;
+    cash_value_paise: number;
+    transactions: WalletTxn[];
+  };
 }
 
 export interface WalletAdjustIn {
   direction: 'credit' | 'debit';
-  amount_paise: number;
+  amount_cash_hundredths: number;
   note: string;
   notify_customer: boolean;
 }
@@ -440,8 +446,15 @@ export interface EmailLog {
 }
 
 export interface StoreSettings {
-  wallet_earn_percent: number;
   wallet_max_redeem_percent: number;
+  wallet_cash_value_paise: number;
+  wallet_tier_1_limit_paise: number;
+  wallet_tier_2_limit_paise: number;
+  wallet_tier_3_limit_paise: number;
+  wallet_tier_1_percent: number;
+  wallet_tier_2_percent: number;
+  wallet_tier_3_percent: number;
+  wallet_tier_4_percent: number;
   shipping_flat_paise: number;
   free_shipping_threshold_paise: number;
   gift_wrap_paise: number;

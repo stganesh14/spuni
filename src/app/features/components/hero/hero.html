@@ -4,7 +4,7 @@
     <div class="drift" appParallax="16" [parallaxScale]="1.06">
       @for (b of banners(); track b.id; let i = $index) {
         <figure class="slide" [class.on]="i === current()" [attr.aria-hidden]="i !== current()">
-          <img [src]="b.image_url" [alt]="b.alt || b.title_one" [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+          <img [src]="b.image_url" [alt]="b.alt || b.title_one" loading="eager"
                [attr.fetchpriority]="i === 0 ? 'high' : null" decoding="async" draggable="false" />
         </figure>
       }

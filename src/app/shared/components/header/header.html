@@ -3,7 +3,7 @@
     @for (n of [0, 1]; track n) {
       <span [attr.aria-hidden]="n === 1 ? 'true' : null">
         @if (freeShipping()) { <span>Free shipping over {{ freeShipping() | inr }}</span><i>◆</i> }
-        <span>Earn {{ earnPercent() }}% back in your SPUNI Wallet</span><i>◆</i>
+        <span>Earn up to {{ earnPercent() }}% as Spuni Cash</span><i>◆</i>
         <span>Handcrafted vegan leather, Chennai</span><i>◆</i>
         <span>Free monogramming on customisable pieces</span><i>◆</i>
       </span>
@@ -62,12 +62,12 @@
 
       <a class="wallet" [routerLink]="auth.isLoggedIn() ? '/account/wallet' : '/login'"
          [queryParams]="auth.isLoggedIn() ? null : { returnUrl: '/account/wallet' }"
-         [attr.aria-label]="'SPUNI Wallet' + (store.walletBalance() !== null ? ', balance ' + (store.walletBalance()! | inr) : '')"
+         [attr.aria-label]="'Spuni Cash wallet' + (store.walletBalance() !== null ? ', balance ' + (store.walletBalance()! | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100)) : '')"
          appMagnetic="0.2">
         <i class="bi bi-wallet2"></i>
         <span class="wallet-copy">
-          <small>Wallet</small>
-          <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | inr) : 'Earn ' + earnPercent() + '%' }}</b>
+          <small>Spuni Cash</small>
+          <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100)) : 'Earn up to ' + earnPercent() + '%' }}</b>
         </span>
       </a>
 
@@ -190,8 +190,8 @@
   <div class="mobile-scroll" data-lenis-prevent>
     <a class="m-item m-wallet" [routerLink]="auth.isLoggedIn() ? '/account/wallet' : '/login'">
       <i class="bi bi-wallet2"></i>
-      <span><small>SPUNI Wallet</small>
-        <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | inr) : 'Sign in to earn ' + earnPercent() + '% back' }}</b></span>
+      <span><small>Spuni Cash</small>
+        <b>{{ store.walletBalance() !== null ? (store.walletBalance()! | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100)) : 'Sign in to earn up to ' + earnPercent() + '% back' }}</b></span>
       <i class="bi bi-arrow-right"></i>
     </a>
 

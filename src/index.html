@@ -15,8 +15,18 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Inter:wght@300;400;500;600;700&display=swap">
   <script>try{if(sessionStorage.getItem('spuni.intro')==='1')document.documentElement.classList.add('intro-seen')}catch(e){}</script>
   <style>html.intro-seen app-premium-loader{display:none!important}</style>
+  <style>
+    #startup-loader{position:fixed;inset:0;z-index:10000;display:grid;place-content:center;gap:12px;background:radial-gradient(120% 90% at 50% 50%,#5a2a22 0%,#3a1d14 55%,#24120c 100%);color:#eee3d2;text-align:center}
+    #startup-loader strong{font-family:Georgia,serif;font-size:clamp(2.5rem,12vw,5rem);font-weight:500;letter-spacing:.14em}
+    #startup-loader span{color:#c9a66b;font:500 .7rem system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase}
+    @media(prefers-reduced-motion:no-preference){#startup-loader strong{animation:startup-pulse 1.6s ease-in-out infinite alternate}@keyframes startup-pulse{to{opacity:.65}}}
+  </style>
 </head>
 <body>
+  <div id="startup-loader" role="status" aria-live="polite">
+    <strong>SPUNI</strong>
+    <span>Opening the atelier</span>
+  </div>
   <app-root></app-root>
   <noscript>SPUNI works best with JavaScript enabled.</noscript>
 </body>

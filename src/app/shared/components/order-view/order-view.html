@@ -55,11 +55,11 @@
         <dt>Subtotal</dt><dd>{{ o.subtotal_paise | inr }}</dd>
         @if (o.order_type === 'product') { <dt>Shipping</dt><dd>{{ o.shipping_paise ? (o.shipping_paise | inr) : 'Free' }}</dd> }
         @if (o.gift_wrap_paise) { <dt>Gift wrap</dt><dd>{{ o.gift_wrap_paise | inr }}</dd> }
-        @if (o.wallet_redeemed_paise) { <dt>SPUNI Wallet</dt><dd>−{{ o.wallet_redeemed_paise | inr }}</dd> }
+        @if (o.wallet_redeemed_paise) { <dt>Spuni Cash applied</dt><dd>−{{ o.wallet_redeemed_paise | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }} ({{ o.wallet_redeemed_paise | inr }} value)</dd> }
         <dt class="t">Total paid</dt><dd class="t">{{ o.total_paise | inr }}</dd>
       </dl>
       @if (o.wallet_earned_paise) {
-        <p class="earned"><i class="bi bi-wallet2"></i> {{ o.wallet_earned_paise | inr }} added to your SPUNI Wallet</p>
+        <p class="earned"><i class="bi bi-wallet2"></i> {{ o.wallet_earned_paise | spuniCash:(store.info()?.wallet_cash_value_paise ?? 100) }} added to your wallet</p>
       }
     </section>
 
@@ -95,7 +95,7 @@
         <button type="button" class="btn btn-ghost btn-sm" (click)="confirmCancel.set(true)">Cancel this order</button>
       } @else {
         <div class="panel confirm">
-          <p><b>Cancel {{ o.number }}?</b> Payment is refunded to the original method and any wallet points used are returned.</p>
+          <p><b>Cancel {{ o.number }}?</b> Payment is refunded to the original method and any Spuni Cash used is returned.</p>
           <label class="field"><span>Reason <span class="muted">(optional)</span></span>
             <input class="input" [value]="cancelReason" (input)="cancelReason = $any($event.target).value" maxlength="300" /></label>
           <div class="row">

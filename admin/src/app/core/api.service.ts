@@ -110,7 +110,8 @@ export class AdminApi {
   customer = (id: number) => this.get<CustomerDetail>(`/customers/${id}`);
   updateCustomer = (id: number, b: { is_active?: boolean; role?: 'customer' | 'admin' }) =>
     this.patch<CustomerRow>(`/customers/${id}`, b);
-  adjustWallet = (id: number, b: WalletAdjustIn) => this.post<{ balance_paise: number }>(`/customers/${id}/wallet`, b);
+  adjustWallet = (id: number, b: WalletAdjustIn) =>
+    this.post<{ balance_paise: number; cash_value_paise: number }>(`/customers/${id}/wallet`, b);
 
   giftCards = (status?: string) => this.get<GiftCard[]>('/gift-cards', { status });
 

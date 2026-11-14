@@ -43,7 +43,15 @@ def max_redeemable(subtotal: int, balance: int, settings: StoreSettings, payable
 
 def reward_for(subtotal: int, wallet_applied: int, settings: StoreSettings) -> int:
     eligible = max(0, subtotal - wallet_applied)
-    reward = eligible * settings.wallet_earn_percent // 100
+    if subtotal < settings.wallet_tier_1_limit_paise:
+        percent = settings.wallet_tier_1_percent
+    elif subtotal < settings.wallet_tier_2_limit_paise:
+        percent = settings.wallet_tier_2_percent
+    elif subtotal <= settings.wallet_tier_3_limit_paise:
+        percent = settings.wallet_tier_3_percent
+    else:
+        percent = settings.wallet_tier_4_percent
+    reward = eligible * percent // 100
     return reward - reward % 100  # whole rupees only
 
 

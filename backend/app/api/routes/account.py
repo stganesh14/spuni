@@ -161,8 +161,7 @@ async def wallet(db: DB, user: Customer) -> WalletOut:
         out.order_number = number
         txns.append(out)
     return WalletOut(balance_paise=wallet_row.balance_paise, lifetime_earned_paise=wallet_row.lifetime_earned_paise,
-                     earn_percent=store.wallet_earn_percent, max_redeem_percent=store.wallet_max_redeem_percent,
-                     transactions=txns)
+                     max_redeem_percent=store.wallet_max_redeem_percent, transactions=txns)
 
 
 @router.post("/wallet/redeem", response_model=GiftCardOut,
