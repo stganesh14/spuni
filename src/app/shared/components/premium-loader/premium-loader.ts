@@ -15,6 +15,7 @@ import { Loader } from '../../../core/services/loader';
 import { safeStorage } from '../../../core/utils/storage';
 
 const SEEN_KEY = 'spuni.intro';
+const INTRO_PAUSE_SECONDS = 1.5;
 const WORD = 'SPUNI';
 const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&@*+?!◆✦';
 const TEASERS = [
@@ -27,10 +28,8 @@ const TEASERS = [
 ];
 
 /**
- * First-visit intro: kinetic letter scramble, a stitch that sews across the
- * screen with a live percentage, rotating teaser lines, then the "bag flap"
- * opens onto the page. The site is server-rendered underneath, so the intro
- * never delays content; repeat visits in a session skip it entirely.
+ * Once-per-session intro: kinetic letter scramble, a stitched progress line,
+ * rotating teaser lines, then the "bag flap" opens onto the page content.
  */
 @Component({
   selector: 'app-premium-loader',
@@ -114,6 +113,7 @@ export class PremiumLoader {
       })
       .to(q('.word'), { scale: 1.06, duration: 0.25, ease: 'power2.out' })
       .to(q('.word'), { scale: 1, duration: 0.4, ease: 'elastic.out(1, 0.5)' })
+      .to({}, { duration: INTRO_PAUSE_SECONDS })
       .to(q('.stage'), { autoAlpha: 0, y: -30, duration: 0.45, ease: 'power2.in' }, '+=0.15')
       .to(q('.flap-top'), { yPercent: -101, duration: 0.95, ease: 'expo.inOut' }, '<0.1')
       .to(q('.flap-bottom'), { yPercent: 101, duration: 0.95, ease: 'expo.inOut' }, '<')

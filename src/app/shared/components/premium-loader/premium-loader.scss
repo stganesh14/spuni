@@ -95,29 +95,22 @@
 }
 
 .tag-body {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 16px 18px 12px;
-  background: var(--cream);
-  color: var(--brown);
-  border-radius: 10px 10px 4px 4px;
-  clip-path: polygon(20% 0, 80% 0, 100% 14%, 100% 100%, 0 100%, 0 14%);
+  position: relative;
+  width: 140px;
+  height: 108px;
+  overflow: hidden;
+  background: #24120c;
+  border-radius: 8px;
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 
-  img { width: 40px; height: 40px; object-fit: contain; }
-
-  span {
-    font-family: var(--font-mono);
-    font-size: 0.5rem;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-  }
-
-  b {
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    color: var(--burgundy);
+  img {
+    position: absolute;
+    top: calc(50% + 11px);
+    left: 50%;
+    width: 396px;
+    max-width: none;
+    height: auto;
+    transform: translate(-50%, -50%);
   }
 }
 

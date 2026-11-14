@@ -16,16 +16,14 @@
   <script>try{if(sessionStorage.getItem('spuni.intro')==='1')document.documentElement.classList.add('intro-seen')}catch(e){}</script>
   <style>html.intro-seen app-premium-loader{display:none!important}</style>
   <style>
-    #startup-loader{position:fixed;inset:0;z-index:10000;display:grid;place-content:center;gap:12px;background:radial-gradient(120% 90% at 50% 50%,#5a2a22 0%,#3a1d14 55%,#24120c 100%);color:#eee3d2;text-align:center}
-    #startup-loader strong{font-family:Georgia,serif;font-size:clamp(2.5rem,12vw,5rem);font-weight:500;letter-spacing:.14em}
-    #startup-loader span{color:#c9a66b;font:500 .7rem system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase}
-    @media(prefers-reduced-motion:no-preference){#startup-loader strong{animation:startup-pulse 1.6s ease-in-out infinite alternate}@keyframes startup-pulse{to{opacity:.65}}}
+    #startup-loader{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;overflow:hidden;background:radial-gradient(120% 90% at 50% 50%,#5a2a22 0%,#3a1d14 55%,#24120c 100%)}
+    #startup-loader img{display:block;width:min(150vw,700px);max-width:none;height:auto}
+    @media(prefers-reduced-motion:no-preference){#startup-loader img{animation:startup-pulse 1.6s ease-in-out infinite alternate}@keyframes startup-pulse{to{opacity:.65}}}
   </style>
 </head>
 <body>
-  <div id="startup-loader" role="status" aria-live="polite">
-    <strong>SPUNI</strong>
-    <span>Opening the atelier</span>
+  <div id="startup-loader" role="status" aria-label="Loading SPUNI">
+    <img src="/assets/spuni-logo.png" alt="" width="594" height="420" fetchpriority="high">
   </div>
   <app-root></app-root>
   <noscript>SPUNI works best with JavaScript enabled.</noscript>
