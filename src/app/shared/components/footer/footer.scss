@@ -163,22 +163,59 @@
 
 .word {
   display: flex;
-  justify-content: center;
+  width: min(66.75vw, 944px);
+  aspect-ratio: 178 / 64;
+  margin: clamp(40px, 7vw, 90px) auto 0;
   overflow: hidden;
-  margin-top: clamp(40px, 7vw, 90px);
-  font-family: var(--font-display);
-  font-size: clamp(5rem, 24vw, 22rem);
-  line-height: 0.78;
-  letter-spacing: -0.02em;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(201, 166, 107, 0.45);
   user-select: none;
 
-  span {
-    display: inline-block;
-    transition: color 0.6s, -webkit-text-stroke-color 0.6s;
+  .letter {
+    display: block;
+    flex: none;
+    height: 100%;
+    background-color: var(--gold-light);
+    transition: background-color 0.6s;
 
-    &:hover { color: var(--burgundy-bright); -webkit-text-stroke-color: transparent; }
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: 100% 100%;
+  }
+
+  .letter-s {
+    width: 28.0899%;
+    -webkit-mask-image: url('/assets/spuni-letter-s.png');
+    mask-image: url('/assets/spuni-letter-s.png');
+  }
+
+  .letter-p {
+    width: 23.0337%;
+    -webkit-mask-image: url('/assets/spuni-letter-p.png');
+    mask-image: url('/assets/spuni-letter-p.png');
+  }
+
+  .letter-u {
+    width: 17.4157%;
+    -webkit-mask-image: url('/assets/spuni-letter-u.png');
+    mask-image: url('/assets/spuni-letter-u.png');
+  }
+
+  .letter-n {
+    width: 22.4719%;
+    -webkit-mask-image: url('/assets/spuni-letter-n.png');
+    mask-image: url('/assets/spuni-letter-n.png');
+  }
+
+  .letter-i {
+    width: 8.9888%;
+    -webkit-mask-image: url('/assets/spuni-letter-i.png');
+    mask-image: url('/assets/spuni-letter-i.png');
+  }
+
+  @include hover {
+    .letter:hover { background-color: var(--burgundy-bright); }
   }
 }
 

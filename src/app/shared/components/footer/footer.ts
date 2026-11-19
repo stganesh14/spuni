@@ -27,7 +27,6 @@ export class Footer {
   protected readonly phone = computed(() => this.store.info()?.support_phone || FALLBACK_PHONE);
   protected readonly phoneHref = computed(() => this.phone().replace(/[^\d+]/g, ''));
   protected readonly whatsapp = computed(() => `https://wa.me/${this.phoneHref().replace(/\D/g, '')}`);
-  protected readonly letters = 'SPUNI'.split('');
 
   constructor() {
     this.store.loadMenu().subscribe();
@@ -37,7 +36,7 @@ export class Footer {
       const root = this.root()?.nativeElement;
       if (!root || this.motion.reduced()) return;
       const ctx = gsap.context(() => {
-        gsap.from('.word span', {
+        gsap.from('.word .letter', {
           yPercent: 110,
           rotate: 6,
           stagger: 0.07,
@@ -45,6 +44,20 @@ export class Footer {
           ease: 'expo.out',
           scrollTrigger: { trigger: '.word', start: 'top 92%' },
         });
+        const letters = root.querySelectorAll<HTMLElement>('.word .letter');
+        if (letters.length && window.matchMedia('(hover: none)').matches) {
+          const accent = getComputedStyle(document.documentElement)
+            .getPropertyValue('--burgundy-bright')
+            .trim();
+          gsap.to(letters, {
+            backgroundColor: accent,
+            duration: 0.6,
+            repeat: 1,
+            yoyo: true,
+            stagger: 0.07,
+            scrollTrigger: { trigger: '.word', start: 'top 92%', once: true },
+          });
+        }
         gsap.from('.col', {
           y: 30,
           autoAlpha: 0,
