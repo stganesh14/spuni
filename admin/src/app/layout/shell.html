@@ -2,7 +2,7 @@
 <div class="shell" [class.nav-open]="navOpen()">
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">S</span>
+      <img class="brand-mark" src="/assets/s-logo-mark.png" alt="" width="512" height="512">
       <div>
         <span class="brand-name">SPUNI</span>
         <span class="brand-sub">Atelier admin</span>
@@ -29,7 +29,10 @@
         </ul>
       }
     </nav>
-    <p class="sidebar-foot">Vegan leather · handcrafted</p>
+    <p class="sidebar-foot">
+      <img src="/assets/s-logo-mark.png" alt="" width="512" height="512">
+      Vegan leather · handcrafted
+    </p>
   </aside>
   <button
     type="button"
@@ -51,7 +54,7 @@
       >
         ☰
       </button>
-      <span class="topbar-title">SPUNI Admin</span>
+      <span class="topbar-title"><img src="/assets/s-logo-mark.png" alt="" width="512" height="512">SPUNI Admin</span>
       <div class="topbar-user">
         <span class="avatar" aria-hidden="true">{{ initials() }}</span>
         <span class="user-email" [title]="auth.user()?.email ?? ''">{{ auth.user()?.email }}</span>

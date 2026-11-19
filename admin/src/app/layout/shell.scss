@@ -27,15 +27,12 @@
   margin-bottom: 4px;
 }
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 20px;
+  padding: 3px;
+  object-fit: contain;
   background: var(--burgundy);
-  color: var(--cream);
   border: 1px solid var(--gold);
 }
 .brand-name {
@@ -95,6 +92,9 @@ nav a {
   color: var(--parchment);
 }
 .sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: auto;
   padding: 12px 10px 0;
   font-size: 11px;
@@ -102,6 +102,15 @@ nav a {
   opacity: 0.7;
   font-style: italic;
   font-family: var(--font-display);
+  img {
+    width: 32px;
+    height: 32px;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--burgundy);
+    object-fit: contain;
+    flex: none;
+  }
 }
 
 .main-col {
@@ -128,6 +137,16 @@ nav a {
   color: var(--brown);
   font-size: 17px;
   display: none;
+  align-items: center;
+  gap: 8px;
+  img {
+    width: 28px;
+    height: 28px;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--brown);
+    object-fit: contain;
+  }
 }
 .topbar-user {
   margin-left: auto;
@@ -210,7 +229,7 @@ nav a {
     padding: 0 16px;
   }
   .topbar-title {
-    display: inline;
+    display: inline-flex;
   }
   .content {
     padding: 20px 16px 40px;

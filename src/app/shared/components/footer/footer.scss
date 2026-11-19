@@ -37,24 +37,19 @@
 }
 
 .brand {
-  position: relative;
-  display: inline-block;
+  display: grid;
+  place-items: center;
   width: 140px;
   height: 108px;
-  overflow: hidden;
   border-radius: 8px;
   background: #24120c;
   color: inherit;
   text-decoration: none;
 
   img {
-    position: absolute;
-    top: calc(50% + 11px);
-    left: 50%;
-    width: 396px;
-    max-width: none;
-    height: auto;
-    transform: translate(-50%, -50%);
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
   }
 }
 

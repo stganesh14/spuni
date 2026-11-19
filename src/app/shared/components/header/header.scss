@@ -90,26 +90,24 @@
 .brand {
   position: relative;
   justify-self: center;
-  display: block;
-  width: 96px;
-  height: var(--header-h);
-  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brown);
   color: var(--brown);
   text-decoration: none;
 
   img {
-    position: absolute;
-    top: calc(50% + 7px);
-    left: 50%;
-    width: 230px;
-    max-width: none;
-    height: auto;
-    transform: translate(-50%, -50%);
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
     transition: transform 0.8s var(--ease-out);
   }
 
   @include hover {
-    img { transform: translate(-50%, -50%) scale(1.04); }
+    img { transform: scale(1.04); }
   }
 }
 
