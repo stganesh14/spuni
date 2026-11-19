@@ -1,4 +1,4 @@
-<section class="wn" id="whats-new" aria-labelledby="wn-title">
+<section class="wn" [class.full]="full()" id="whats-new" aria-labelledby="wn-title">
   <div class="container">
     <header class="head">
       <div>
@@ -31,7 +31,7 @@
           @if (l.description) { <p class="desc">{{ l.description }}</p> }
 
           @if (l.status === 'upcoming') {
-            @if (l.launch_at) { <app-countdown [to]="l.launch_at" /> }
+            @if (l.launch_at) { <app-countdown [to]="l.launch_at" [compact]="full()" /> }
             <div class="actions">
               <app-notify-me [slug]="l.slug" [title]="l.title" />
               @if (l.subscriber_count > 0) {
