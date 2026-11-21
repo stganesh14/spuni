@@ -8,6 +8,15 @@ class ImageOut(OutputModel):
     url: str
     alt: str | None
     sort_order: int
+    color_id: int | None = None
+    is_primary: bool = False
+
+
+class ProductColorOut(OutputModel):
+    id: int
+    name: str
+    hex_code: str
+    sort_order: int
 
 
 class CategoryOut(OutputModel):
@@ -20,6 +29,7 @@ class CategoryOut(OutputModel):
     banner_url: str | None
     sort_order: int
     product_count: int = 0
+    subcategories: list["CategoryRef"] = []
 
 
 class CategoryRef(OutputModel):
@@ -55,6 +65,7 @@ class ProductDetail(ProductCard):
     weight_grams: int | None
     care_instructions: str | None
     images: list[ImageOut]
+    colors: list[ProductColorOut] = []
     meta_title: str | None
     meta_description: str | None
     related: list[ProductCard] = []
@@ -71,7 +82,13 @@ class MenuCategory(OutputModel):
     slug: str
     image_url: str | None
     tagline: str | None
-    products: list[MenuProduct]
+    subcategories: list["MenuSubcategory"]
+
+
+class MenuSubcategory(OutputModel):
+    name: str
+    slug: str
+    image_url: str | None
 
 
 class MenuOut(OutputModel):

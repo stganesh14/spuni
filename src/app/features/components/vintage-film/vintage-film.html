@@ -82,13 +82,13 @@
 
         preload="metadata"
 
-        poster="/assets/video-poster.png"
+        [poster]="store.info()?.home_media?.['vintage_poster'] || '/assets/video-poster.png'"
 
         aria-label="SPUNI handcrafted leather atelier film"
       >
 
         <source
-          src="/assets/film.mp4"
+          [src]="store.info()?.home_media?.['vintage_video'] || '/assets/film.mp4'"
           type="video/mp4"
         />
 

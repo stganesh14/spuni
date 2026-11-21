@@ -12,7 +12,7 @@ export const API_BASE = new InjectionToken<string>('API_BASE', {
 
 export const API_PREFIX = '/api/v1';
 
-/** Resolve a media URL (relative `/media/...`) against the API origin. */
+/** Resolve a media URL returned by the API against the API origin. */
 export function mediaUrl(base: string, url: string | null | undefined): string {
   if (!url) return '';
   if (/^https?:\/\//.test(url)) return url;

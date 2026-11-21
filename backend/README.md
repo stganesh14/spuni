@@ -94,7 +94,8 @@ To go live with Razorpay:
 - Set `EMAIL_BACKEND=smtp` with SMTP credentials. For Gmail, use an app password.
 - Run `alembic upgrade head` on every deploy.
 - Run the API with several workers, for example `uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4 --proxy-headers`. The in-process rate limiter is per worker, so also add nginx `limit_req` on `/api/v1/auth/` and `/api/v1/admin/auth/`.
-- Back up Postgres and the `media/` folder (uploaded product images and customisation files).
+- Back up Postgres (images and customization attachments are in `media_assets`) and the `media/` folder (videos only).
+- To move existing non-video media into the database and remove its local copies, back up first and run `python -m scripts.migrate_media_to_db` from `backend/`.
 
 ### Recommended layout (one domain, first-party cookies)
 

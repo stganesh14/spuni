@@ -35,7 +35,7 @@ In development, emails are printed to the API log. Print the latest sign-in code
 - **Sign-in:** email plus a 6-digit code, with resend and "didn't get a code".
   - Browsing, the bag and the wishlist work without an account.
   - Checkout, orders, the wallet and customisation requests ask the shopper to sign in, then return them to where they were.
-- **Data:** every product, category, banner and launch comes from the API. The images are served from `/media`.
+- **Data:** every product, category, banner and launch comes from the API. Images and customization attachments are stored in Postgres and served from `/api/v1/media/{id}`; only videos remain in the local `/media` folder.
 - **Pages:**
   - Shopping: home, shop (filters, sort, search), category, product (gallery zoom, related), bag, checkout, order confirmation.
   - Account: overview, orders, wallet, addresses, gift cards, customisations, profile.

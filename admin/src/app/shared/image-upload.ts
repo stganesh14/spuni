@@ -11,7 +11,7 @@ import { MediaPipe } from './pipes';
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/gif';
 let seq = 0;
 
-/** Single image field (form control holding the uploaded `/media/...` URL or null). */
+/** Single image field (form control holding the uploaded API media URL or null). */
 @Component({
   selector: 'app-image-upload',
   imports: [MediaPipe],
@@ -98,6 +98,8 @@ export class ImageUpload implements ControlValueAccessor {
 export interface GalleryImage {
   url: string;
   alt: string | null;
+  color_id?: number | null;
+  is_primary?: boolean;
 }
 
 /** Product image manager: multi-upload, drag or button reorder, alt text, remove. First = primary. */
@@ -142,6 +144,23 @@ export interface GalleryImage {
               [value]="img.alt ?? ''"
               (input)="setAlt(i, $any($event.target).value)"
             />
+            @if (colors().length) {
+              <select
+                class="select input-sm"
+                [value]="img.color_id ?? ''"
+                (change)="setColor(i, $any($event.target).value)"
+                [attr.aria-label]="'Choose color for image ' + (i + 1)"
+              >
+                <option value="">Shared / no color</option>
+                @for (color of colors(); track color.id) {
+                  <option [value]="color.id">{{ color.name }}</option>
+                }
+              </select>
+              <label class="check">
+                <input type="checkbox" [checked]="img.is_primary ?? i === 0" (change)="setPrimary(i, $any($event.target).checked)" />
+                Main image for this color
+              </label>
+            }
           </div>
           <div class="gallery-actions">
             <button type="button" class="icon-btn" [disabled]="i === 0" (click)="move(i, i - 1)" [attr.aria-label]="'Move image ' + (i + 1) + ' up'">↑</button>
@@ -157,6 +176,7 @@ export class ImageManager {
   readonly images = model<GalleryImage[]>([]);
   readonly folder = input<MediaFolder>('products');
   readonly max = input(12);
+  readonly colors = input<{ id: number; name: string; hex_code: string }[]>([]);
   protected readonly accept = ACCEPT;
   protected readonly inputId = `image-manager-${++seq}`;
   protected readonly uploading = signal(0);
@@ -195,6 +215,24 @@ export class ImageManager {
 
   protected setAlt(i: number, alt: string): void {
     this.images.update((list) => list.map((img, j) => (j === i ? { ...img, alt: alt || null } : img)));
+  }
+
+  protected setColor(i: number, value: string): void {
+    const colorId = value ? Number(value) : null;
+    this.images.update((list) => {
+      const next = list.map((img, j) => (j === i ? { ...img, color_id: colorId, is_primary: false } : img));
+      if (colorId !== null && !next.some((img, j) => j !== i && img.color_id === colorId && img.is_primary)) {
+        next[i] = { ...next[i], is_primary: true };
+      }
+      return next;
+    });
+  }
+
+  protected setPrimary(i: number, checked: boolean): void {
+    const selected = this.images()[i];
+    this.images.update((list) => list.map((img, j) =>
+      img.color_id === selected.color_id ? { ...img, is_primary: checked && j === i } : img,
+    ));
   }
 
   protected remove(i: number): void {

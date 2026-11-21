@@ -62,6 +62,26 @@
           <small>Inclusive of all taxes</small>
         </div>
 
+        @if (p.colors.length) {
+          <div class="color-picker" role="radiogroup" aria-label="Choose color">
+            <span class="eyebrow">{{ selectedColorName() || 'Choose color' }}</span>
+            <div class="swatches">
+              @for (color of p.colors; track color.id) {
+                <button type="button"
+                        class="swatch"
+                        [class.on]="selectedColorId() === color.id"
+                        [style.--swatch]="color.hex_code"
+                        (click)="selectColor(color.id)"
+                        [attr.aria-label]="color.name"
+                        [attr.aria-checked]="selectedColorId() === color.id"
+                        role="radio">
+                  <span></span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
         <p class="stock" [class]="'stock ' + p.stock_status">
           <span class="dot"></span>
           @switch (p.stock_status) {

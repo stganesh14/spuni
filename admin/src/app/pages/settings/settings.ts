@@ -63,6 +63,7 @@ export class SettingsPage {
   protected readonly formError = signal<string | null>(null);
   protected readonly unmatched = signal<FieldError[]>([]);
   protected readonly updatedAt = signal<string | null>(null);
+  private homeMedia: Record<string, string> = {};
 
   protected readonly form = new FormGroup(
     {
@@ -110,6 +111,7 @@ export class SettingsPage {
   }
 
   private patch(s: StoreSettings): void {
+    this.homeMedia = s.home_media ?? {};
     this.form.reset({
       wallet_max_redeem_percent: String(s.wallet_max_redeem_percent),
       wallet_cash_value: paiseToRupees(s.wallet_cash_value_paise),
@@ -165,6 +167,7 @@ export class SettingsPage {
       header_text_1: v.header_text_1.trim(),
       header_text_2: v.header_text_2.trim(),
       customization_marquee_text: v.customization_marquee_text.trim(),
+      home_media: this.homeMedia,
     };
     this.saving.set(true);
     try {

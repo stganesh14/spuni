@@ -100,8 +100,8 @@
                 <span class="num">{{ (i + 1).toString().padStart(2, '0') }}</span>{{ c.name }}
               </a>
               <ul>
-                @for (p of c.products.slice(0, 6); track p.slug) {
-                  <li><a [routerLink]="['/product', p.slug]">{{ p.name }}</a></li>
+                @for (sub of c.subcategories.slice(0, 8); track sub.slug) {
+                  <li><a [routerLink]="['/subcategory', sub.slug]">{{ sub.name }}</a></li>
                 }
               </ul>
               <a class="mega-all" [routerLink]="['/category', c.slug]">View all <i class="bi bi-arrow-right"></i></a>
@@ -127,8 +127,8 @@
                 <span class="num">{{ (i + 1).toString().padStart(2, '0') }}</span>{{ c.name }}
               </a>
               <ul>
-                @for (p of c.products.slice(0, 6); track p.slug) {
-                  <li><a [routerLink]="['/product', p.slug]">{{ p.name }}</a></li>
+                @for (sub of c.subcategories.slice(0, 6); track sub.slug) {
+                  <li><a [routerLink]="['/subcategory', sub.slug]">{{ sub.name }}</a></li>
                 }
               </ul>
             </div>
@@ -136,7 +136,7 @@
         </div>
         <div class="mega-feature single">
           <a class="gender-card" routerLink="/shop" [queryParams]="{ gender: panel() }">
-            <img [src]="panel() === 'men' ? '/assets/for-him.jpeg' : '/assets/for-her.jpeg'"
+            <img [src]="(panel() === 'men' ? store.info()?.home_media?.['men_card'] : store.info()?.home_media?.['women_card']) || (panel() === 'men' ? '/assets/for-him.jpeg' : '/assets/for-her.jpeg')"
                  [alt]="panel() === 'men' ? 'Leather goods for him' : 'Leather goods for her'" loading="lazy" />
             <span>Shop all for {{ panel() === 'men' ? 'him' : 'her' }} <i class="bi bi-arrow-up-right"></i></span>
           </a>
@@ -203,8 +203,8 @@
         </button>
         <div class="m-sub">
           <div>
-            @for (p of c.products.slice(0, 8); track p.slug) {
-              <a [routerLink]="['/product', p.slug]">{{ p.name }}</a>
+            @for (sub of c.subcategories.slice(0, 8); track sub.slug) {
+              <a [routerLink]="['/subcategory', sub.slug]">{{ sub.name }}</a>
             }
             <a class="m-all" [routerLink]="['/category', c.slug]">View all {{ c.name }} →</a>
           </div>

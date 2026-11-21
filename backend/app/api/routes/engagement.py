@@ -90,7 +90,7 @@ async def create_customization(
     if kind == CustomizationKind.CATALOG and product is None:
         raise AppError("Choose the product you want customised.", code="product_required")
 
-    stored = [await media.save_customer_file(f) for f in files]
+    stored = [await media.save_customer_file(f, db) for f in files]
     row = CustomizationRequest(
         reference=f"CUS{utcnow():%y%m}-{_random_code(5)}",
         user_id=user.id, kind=kind, product_id=product.id if product else None,

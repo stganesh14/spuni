@@ -397,6 +397,21 @@ img {
 .form-grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.color-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  input[type='color'] {
+    width: 44px;
+    height: 40px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+}
 .form-actions {
   display: flex;
   justify-content: flex-end;

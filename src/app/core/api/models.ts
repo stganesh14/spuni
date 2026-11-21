@@ -49,6 +49,7 @@ export interface Category extends CategoryRef {
   banner_url: string | null;
   sort_order: number;
   product_count: number;
+  subcategories: CategoryRef[];
 }
 
 export type Gender = 'men' | 'women' | 'unisex';
@@ -74,6 +75,15 @@ export interface ProductImage {
   url: string;
   alt: string | null;
   sort_order: number;
+  color_id: number | null;
+  is_primary: boolean;
+}
+
+export interface ProductColor {
+  id: number;
+  name: string;
+  hex_code: string;
+  sort_order: number;
 }
 
 export interface ProductDetail extends ProductCard {
@@ -90,6 +100,7 @@ export interface ProductDetail extends ProductCard {
   meta_title: string | null;
   meta_description: string | null;
   related: ProductCard[];
+  colors: ProductColor[];
 }
 
 export interface MenuProduct {
@@ -103,7 +114,13 @@ export interface MenuCategory {
   slug: string;
   image_url: string | null;
   tagline: string | null;
-  products: MenuProduct[];
+  subcategories: MenuSubcategory[];
+}
+
+export interface MenuSubcategory {
+  name: string;
+  slug: string;
+  image_url: string | null;
 }
 
 export interface Menu {
@@ -160,6 +177,7 @@ export interface StoreInfo {
   header_text_1: string;
   header_text_2: string;
   customization_marquee_text: string;
+  home_media: Record<string, string>;
   payment_mode: 'mock' | 'razorpay';
   razorpay_key_id: string | null;
 }
@@ -167,6 +185,8 @@ export interface StoreInfo {
 export interface CartLine {
   product_id: number;
   quantity: number;
+  color_id?: number | null;
+  color_name?: string | null;
 }
 
 export interface QuoteLine {
@@ -264,6 +284,8 @@ export interface OrderItem {
   product_slug: string | null;
   sku: string | null;
   image_url: string | null;
+  color_id: number | null;
+  color_name: string | null;
   unit_price_paise: number;
   quantity: number;
   line_total_paise: number;
@@ -432,6 +454,7 @@ export interface MessageResponse {
 
 export interface ProductQuery {
   category?: string | null;
+  subcategory?: string | null;
   gender?: Gender | null;
   q?: string | null;
   min_price?: number | null;

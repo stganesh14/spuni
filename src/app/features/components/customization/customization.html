@@ -7,7 +7,7 @@
     </header>
 
     <div class="deck" #deck>
-      @for (w of ways; track w.mode; let i = $index) {
+      @for (w of ways(); track w.mode; let i = $index) {
         <article class="way" [class]="'way w' + i">
           <div class="w-media">
             <img [src]="w.image" [alt]="w.alt" loading="lazy" decoding="async" [appZoomable]="w.image" [zoomTitle]="w.title"

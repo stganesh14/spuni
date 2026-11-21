@@ -36,8 +36,8 @@ The API rate-limits codes: one every 60 s per email (the resend button shows a c
 export const environment = { production: true, apiBase: '' };
 ```
 
-- `apiBase: ''` (the default) means the API is on the same origin as the admin app. Calls go to `/api/v1/...` and images to `/media/...`.
-- To call an API on another host, set an absolute origin such as `apiBase: 'https://api.spuni.in'`. Relative `/media/...` image URLs resolve against the same origin. In that case the API must:
+- `apiBase: ''` (the default) means the API is on the same origin as the admin app. Calls and database-backed assets use `/api/v1/...`; `/media/...` serves videos only.
+- To call an API on another host, set an absolute origin such as `apiBase: 'https://api.spuni.in'`. Relative API media URLs resolve against the same origin. In that case the API must:
   - allow the admin origin in `CORS_ORIGINS`;
   - send the refresh cookie with `SameSite=None; Secure` (`COOKIE_SAMESITE=none`, `COOKIE_SECURE=true`).
 
@@ -54,7 +54,7 @@ npx ng test --watch=false    # unit tests (Vitest)
 
 ## Deploy behind the same domain as the API
 
-The build is a static single-page app. Serve `dist/admin/browser` and reverse-proxy `/api` and `/media` to the API from the **same host**, so cookies stay first-party. Example nginx config for `admin.spuni.in`:
+The build is a static single-page app. Serve `dist/admin/browser` and reverse-proxy `/api` and `/media` to the API from the **same host**, so cookies stay first-party. `/api` serves database-backed images and attachments; `/media` serves videos. Example nginx config for `admin.spuni.in`:
 
 ```nginx
 server {

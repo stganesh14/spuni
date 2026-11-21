@@ -45,6 +45,7 @@
             <span class="nm">
               @if (it.product_slug) { <a [routerLink]="['/product', it.product_slug]">{{ it.product_name }}</a> }
               @else { {{ it.product_name }} }
+              @if (it.color_name) { <small>Color: {{ it.color_name }}</small> }
               <small>{{ it.quantity }} × {{ it.unit_price_paise | inr }}</small>
             </span>
             <b>{{ it.line_total_paise | inr }}</b>

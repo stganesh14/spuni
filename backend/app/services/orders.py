@@ -213,11 +213,15 @@ async def create_product_order(db: AsyncSession, user: User, body: CheckoutIn) -
     )
     for line in priced.lines:
         product = priced.products[line.product_id]
+        color_images = [img for img in product.images if line.color_id and img.color_id == line.color_id]
+        selected_image = next((img.url for img in color_images if img.is_primary), None)
+        selected_image = selected_image or next((img.url for img in color_images), product.primary_image)
         product.stock -= line.quantity  # rows are locked FOR UPDATE; CHECK(stock >= 0) is the backstop
         order.items.append(
             OrderItem(
                 product_id=product.id, product_name=product.name, product_slug=product.slug, sku=product.sku,
-                image_url=product.primary_image, unit_price_paise=line.unit_price_paise,
+                image_url=selected_image, color_id=line.color_id, color_name=line.color_name,
+                unit_price_paise=line.unit_price_paise,
                 quantity=line.quantity, line_total_paise=line.line_total_paise,
             )
         )

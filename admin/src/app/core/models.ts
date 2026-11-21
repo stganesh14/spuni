@@ -43,18 +43,32 @@ export interface Category {
   sort_order: number;
   is_active: boolean;
   show_in_menu: boolean;
+  parent_id: number | null;
+  subcategory_count: number;
+  subcategories: Category[];
   product_count: number;
   created_at: string;
   updated_at: string;
 }
 
-export type CategoryIn = Omit<Category, 'id' | 'product_count' | 'created_at' | 'updated_at'>;
+export type CategoryIn =
+  Omit<Category, 'id' | 'product_count' | 'subcategory_count' | 'subcategories' | 'parent_id' | 'created_at' | 'updated_at'>
+  & { parent_id: number | null };
 
 export interface ProductImage {
   id?: number;
   url: string;
   alt: string | null;
   sort_order?: number;
+  color_id?: number | null;
+  is_primary?: boolean;
+}
+
+export interface ProductColor {
+  id: number;
+  name: string;
+  hex_code: string;
+  sort_order: number;
 }
 
 export type Gender = 'men' | 'women' | 'unisex';
@@ -63,6 +77,8 @@ export interface Product {
   id: number;
   category_id: number;
   category_name: string;
+  subcategory_id: number | null;
+  subcategory_name: string | null;
   name: string;
   slug: string;
   sku: string;
@@ -86,12 +102,14 @@ export interface Product {
   meta_title: string | null;
   meta_description: string | null;
   images: ProductImage[];
+  colors: ProductColor[];
   created_at: string;
   updated_at: string;
 }
 
 export interface ProductIn {
   category_id: number;
+  subcategory_id: number | null;
   name: string;
   slug: string;
   sku: string;
@@ -114,7 +132,8 @@ export interface ProductIn {
   sort_order: number;
   meta_title: string | null;
   meta_description: string | null;
-  images: { url: string; alt: string | null }[];
+  images: { url: string; alt: string | null; color_id?: number | null; color_name?: string | null; is_primary?: boolean }[];
+  colors: { name: string; hex_code: string; sort_order: number }[];
 }
 
 export type ProductStatusFilter = 'all' | 'active' | 'inactive' | 'low_stock' | 'out_of_stock';
@@ -466,6 +485,7 @@ export interface StoreSettings {
   header_text_1: string;
   header_text_2: string;
   customization_marquee_text: string;
+  home_media: Record<string, string>;
   updated_at?: string;
 }
 
@@ -495,4 +515,4 @@ export interface Dashboard {
   status_breakdown: Record<string, number>;
 }
 
-export type MediaFolder = 'products' | 'categories' | 'launches' | 'banners';
+export type MediaFolder = 'products' | 'categories' | 'launches' | 'banners' | 'homepage';

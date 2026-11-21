@@ -43,10 +43,20 @@
               <button type="button" class="btn-link small" (click)="regenerateSlug()">Regenerate slug from name</button>
             </div>
             <app-field label="Category" for="p-category" [required]="true" [control]="ctrl('category_id')">
-              <select id="p-category" class="select" formControlName="category_id">
+              <select id="p-category" class="select" formControlName="category_id"
+                      (change)="form.controls.subcategory_id.setValue(null)">
                 <option [ngValue]="null" disabled>Choose a category</option>
                 @for (c of categories(); track c.id) {
                   <option [ngValue]="c.id">{{ c.name }}{{ c.is_active ? '' : ' (hidden)' }}</option>
+                }
+              </select>
+            </app-field>
+            <app-field label="Subcategory" for="p-subcategory" [control]="ctrl('subcategory_id')"
+                       hint="Choose the collection shown in the menu.">
+              <select id="p-subcategory" class="select" formControlName="subcategory_id">
+                <option [ngValue]="null">No subcategory</option>
+                @for (sub of subcategoriesFor(form.controls.category_id.value); track sub.id) {
+                  <option [ngValue]="sub.id">{{ sub.name }}</option>
                 }
               </select>
             </app-field>
@@ -57,6 +67,25 @@
                 <option value="men">Men</option>
               </select>
             </app-field>
+            <div class="span-2">
+              <span class="small muted">Product colors</span>
+              @for (color of colors(); track color.id) {
+                <div class="color-option-row">
+                  <input class="input" [value]="color.name" maxlength="60" aria-label="Color name"
+                         (input)="updateColor(color.id, 'name', $any($event.target).value)" />
+                  <input type="color" [value]="color.hex_code" aria-label="Color swatch"
+                         (input)="updateColor(color.id, 'hex_code', $any($event.target).value)" />
+                  <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="removeColor(color.id)"
+                          [attr.aria-label]="'Remove ' + color.name">Remove</button>
+                </div>
+              }
+              <div class="color-option-row">
+                <input class="input" formControlName="new_color_name" maxlength="60" placeholder="Color name" aria-label="New color name" />
+                <input type="color" formControlName="new_color_hex" aria-label="New color swatch" />
+                <button type="button" class="btn btn-ghost btn-sm" (click)="addColor()">Add color</button>
+              </div>
+              @if (colorError()) { <p class="field-error" role="alert">{{ colorError() }}</p> }
+            </div>
             <app-field class="span-2" label="Short description" for="p-short" [control]="ctrl('short_description')" hint="Shown on product cards. Up to 280 characters.">
               <input id="p-short" class="input" formControlName="short_description" maxlength="280" />
             </app-field>
@@ -68,7 +97,7 @@
 
         <section class="card">
           <h2 class="section-title">Images</h2>
-          <app-image-manager [(images)]="images" folder="products" [max]="12" />
+          <app-image-manager [(images)]="images" [colors]="colors()" folder="products" [max]="12" />
         </section>
 
         <section class="card">

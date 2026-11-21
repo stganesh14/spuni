@@ -14,7 +14,7 @@ import { RevealTextDirective } from '../../../shared/directives/reveal-text.dire
       <div class="container grid">
         <div class="visual" aria-hidden="true">
           <div class="parcel">
-            <img src="/assets/classic-handbag.jpeg" alt="" loading="lazy" decoding="async" />
+            <img [src]="giftImage()" alt="" loading="lazy" decoding="async" />
             <span class="ribbon v"></span>
             <span class="ribbon h"></span>
             <span class="bow"><span class="loop l"></span><span class="loop r"></span><span class="knot"></span></span>
@@ -62,4 +62,7 @@ import { RevealTextDirective } from '../../../shared/directives/reveal-text.dire
 export class GiftTeaser {
   private readonly store = inject(StoreService);
   protected readonly wrap = computed(() => this.store.info()?.gift_wrap_paise ?? 0);
+  protected readonly giftImage = computed(() =>
+    this.store.info()?.home_media?.['gift_teaser'] || '/assets/classic-handbag.jpeg'
+  );
 }

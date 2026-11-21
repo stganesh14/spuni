@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -39,8 +40,17 @@ class Category(IdMixin, TimestampMixin, Base):
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
     show_in_menu: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+    parent_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
-    products: Mapped[list["Product"]] = relationship(back_populates="category")
+    parent: Mapped["Category | None"] = relationship(
+        "Category", remote_side="Category.id", back_populates="subcategories"
+    )
+    subcategories: Mapped[list["Category"]] = relationship(back_populates="parent")
+    products: Mapped[list["Product"]] = relationship(
+        back_populates="category", foreign_keys="Product.category_id"
+    )
 
 
 class Product(IdMixin, TimestampMixin, Base):
@@ -63,6 +73,9 @@ class Product(IdMixin, TimestampMixin, Base):
 
     category_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    subcategory_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(140), unique=True, nullable=False)
@@ -89,7 +102,16 @@ class Product(IdMixin, TimestampMixin, Base):
     meta_title: Mapped[str | None] = mapped_column(String(160))
     meta_description: Mapped[str | None] = mapped_column(String(300))
 
-    category: Mapped[Category] = relationship(back_populates="products")
+    category: Mapped[Category] = relationship(
+        back_populates="products", foreign_keys=[category_id]
+    )
+    subcategory: Mapped[Category | None] = relationship(
+        "Category", foreign_keys=[subcategory_id]
+    )
+    colors: Mapped[list["ProductColor"]] = relationship(
+        back_populates="product", cascade="all, delete-orphan",
+        order_by="(ProductColor.sort_order, ProductColor.id)",
+    )
     images: Mapped[list["ProductImage"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
@@ -101,6 +123,37 @@ class Product(IdMixin, TimestampMixin, Base):
         return self.images[0].url if self.images else None
 
 
+class ProductColor(IdMixin, TimestampMixin, Base):
+    __tablename__ = "product_colors"
+    __table_args__ = (
+        CheckConstraint("length(trim(name)) >= 1", name="product_color_name_len"),
+        CheckConstraint("hex_code ~ '^#[0-9A-Fa-f]{6}$'", name="product_color_hex_format"),
+        UniqueConstraint("product_id", "name", name="uq_product_color_name"),
+    )
+
+    product_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(60), nullable=False)
+    hex_code: Mapped[str] = mapped_column(String(7), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+    product: Mapped[Product] = relationship(back_populates="colors")
+
+
+class MediaAsset(IdMixin, TimestampMixin, Base):
+    __tablename__ = "media_assets"
+    __table_args__ = (
+        CheckConstraint("size_bytes >= 0", name="media_asset_size_non_negative"),
+    )
+
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    original_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+
+
 class ProductImage(IdMixin, Base):
     __tablename__ = "product_images"
     __table_args__ = (CheckConstraint("sort_order >= 0", name="sort_order_positive"),)
@@ -108,6 +161,10 @@ class ProductImage(IdMixin, Base):
     product_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    color_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("product_colors.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     alt: Mapped[str | None] = mapped_column(String(160))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
@@ -116,6 +173,7 @@ class ProductImage(IdMixin, Base):
     )
 
     product: Mapped[Product] = relationship(back_populates="images")
+    color: Mapped["ProductColor | None"] = relationship(foreign_keys=[color_id])
 
 
 class WishlistItem(IdMixin, Base):

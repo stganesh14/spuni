@@ -11,6 +11,7 @@ import {
 
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { StoreService } from '../../../core/cart/store.service';
 
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -30,6 +31,11 @@ export class EthicalLeather implements AfterViewInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly ngZone = inject(NgZone);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly store = inject(StoreService);
+
+  protected media(key: string, fallback: string): string {
+    return this.store.info()?.home_media?.[key] || fallback;
+  }
 
   private mm?: gsap.MatchMedia;
   private resizeObserver?: ResizeObserver;
@@ -39,6 +45,7 @@ export class EthicalLeather implements AfterViewInit, OnDestroy {
   processItems = [
     {
       number: '01',
+      key: 'ethical_source',
       title: 'SOURCED',
       description:
         'We carefully consider the origin and quality of every material used in our products.',
@@ -46,6 +53,7 @@ export class EthicalLeather implements AfterViewInit, OnDestroy {
     },
     {
       number: '02',
+      key: 'ethical_refined',
       title: 'REFINED',
       description:
         'Materials are refined with attention to quality, texture and long-term performance.',
@@ -53,6 +61,7 @@ export class EthicalLeather implements AfterViewInit, OnDestroy {
     },
     {
       number: '03',
+      key: 'ethical_crafted',
       title: 'CRAFTED',
       description:
         'Skilled craftsmanship brings every material together with thoughtful design.',
@@ -60,6 +69,7 @@ export class EthicalLeather implements AfterViewInit, OnDestroy {
     },
     {
       number: '04',
+      key: 'ethical_carried',
       title: 'CARRIED',
       description:
         'The finished piece is designed to become something you can carry and keep for years.',

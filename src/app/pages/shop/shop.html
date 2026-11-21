@@ -33,6 +33,17 @@
       }
     </div>
 
+    @if (slug() && category()?.subcategories?.length) {
+      <section class="subcategory-grid" aria-label="Subcategories">
+        @for (sub of category()!.subcategories; track sub.slug) {
+          <a class="subcategory-card" [routerLink]="['/subcategory', sub.slug]">
+            <span>{{ sub.name }}</span>
+            <i class="bi bi-arrow-right"></i>
+          </a>
+        }
+      </section>
+    }
+
     <div class="toolbar">
       <button type="button" class="btn btn-ghost btn-sm filter-toggle" (click)="filtersOpen.set(!filtersOpen())"
               [attr.aria-expanded]="filtersOpen()" aria-controls="filters">

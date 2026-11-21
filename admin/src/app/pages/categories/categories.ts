@@ -15,6 +15,7 @@ import { FieldComponent, PageHeader, StateComponent, StatusBadge } from '../../s
 
 function buildForm() {
   return new FormGroup({
+    parent_id: new FormControl<number | null>(null),
     name: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2), Validators.maxLength(80)] }),
     slug: new FormControl('', {
       nonNullable: true,
@@ -71,10 +72,11 @@ export class CategoriesPage {
   protected open(c: Category | 'new'): void {
     this.formError.set(null);
     if (c === 'new') {
-      this.form.reset({ name: '', slug: '', tagline: '', description: '', image_url: null, banner_url: null, sort_order: String((this.items()?.length ?? 0)), is_active: true, show_in_menu: true });
+      this.form.reset({ parent_id: null, name: '', slug: '', tagline: '', description: '', image_url: null, banner_url: null, sort_order: String((this.items()?.length ?? 0)), is_active: true, show_in_menu: true });
       this.slugTouched = false;
     } else {
       this.form.reset({
+        parent_id: c.parent_id,
         name: c.name,
         slug: c.slug,
         tagline: c.tagline ?? '',
@@ -100,6 +102,7 @@ export class CategoriesPage {
     if (this.form.invalid) return;
     const v = this.form.getRawValue();
     const body: CategoryIn = {
+      parent_id: v.parent_id,
       name: v.name.trim(),
       slug: v.slug.trim(),
       tagline: nullIfBlank(v.tagline),

@@ -57,6 +57,40 @@
   .chip { flex: none; text-decoration: none; color: inherit; }
 }
 
+.subcategory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 0 6px;
+
+  @include up($bp-lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.subcategory-card {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: rgba(247, 239, 227, 0.78);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  text-decoration: none;
+  transition: transform 0.3s var(--ease-out), border-color 0.3s;
+
+  i { color: var(--burgundy); }
+
+  @include hover {
+    transform: translateY(-3px);
+    border-color: var(--burgundy);
+  }
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;

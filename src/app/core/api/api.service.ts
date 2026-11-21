@@ -107,6 +107,10 @@ export class Api {
     return this.http.get<Category>(this.url(`/categories/${encodeURIComponent(slug)}`));
   }
 
+  subcategory(slug: string): Observable<Category> {
+    return this.http.get<Category>(this.url(`/subcategories/${encodeURIComponent(slug)}`));
+  }
+
   products(query: ProductQuery): Observable<Page<ProductCard>> {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) {

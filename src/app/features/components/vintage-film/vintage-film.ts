@@ -11,6 +11,7 @@ import {
 
 import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { StoreService } from '../../../core/cart/store.service';
 
 import { gsap } from 'gsap';
 
@@ -37,6 +38,7 @@ export class VintageFilm
 
   private readonly ngZone =
     inject(NgZone);
+  protected readonly store = inject(StoreService);
 
 
   /* =====================================================

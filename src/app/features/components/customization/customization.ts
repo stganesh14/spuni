@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, computed, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { gsap } from 'gsap';
 
@@ -6,6 +6,7 @@ import { MotionService } from '../../../core/motion/motion.service';
 import { MagneticDirective } from '../../../shared/directives/magnetic.directive';
 import { RevealTextDirective } from '../../../shared/directives/reveal-text.directive';
 import { ZoomableDirective } from '../../../shared/directives/zoomable.directive';
+import { StoreService } from '../../../core/cart/store.service';
 
 export interface CustomizationWay {
   mode: 'catalog' | 'upload' | 'expert';
@@ -63,7 +64,12 @@ export class Customization {
   private readonly motion = inject(MotionService);
   private readonly zone = inject(NgZone);
   private readonly deck = viewChild<ElementRef<HTMLElement>>('deck');
-  protected readonly ways = CUSTOMIZATION_WAYS;
+  private readonly store = inject(StoreService);
+  protected readonly ways = computed(() => [
+    { ...CUSTOMIZATION_WAYS[0], image: this.store.info()?.home_media?.['customization_catalog'] || '/assets/customization-finished.png' },
+    { ...CUSTOMIZATION_WAYS[1], image: this.store.info()?.home_media?.['customization_upload'] || '/assets/customization-sketch.png' },
+    { ...CUSTOMIZATION_WAYS[2], image: this.store.info()?.home_media?.['customization_expert'] || '/assets/craftsmanship.jpeg' },
+  ]);
 
   constructor() {
     let ctx: gsap.Context | undefined;

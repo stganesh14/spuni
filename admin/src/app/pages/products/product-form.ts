@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { AdminApi } from '../../core/api.service';
 import { applyServerErrors, FieldError, toApiError } from '../../core/errors';
 import { nullIfBlank, paiseToRupees, rupeesToPaise, slugify } from '../../core/format';
-import { Category, Gender, Product, ProductIn } from '../../core/models';
+import { Category, Gender, Product, ProductColor, ProductIn } from '../../core/models';
 import { ConfirmService, ToastService } from '../../core/ui.service';
 import { intRange, PATTERNS, rupees } from '../../core/validators';
 import { GalleryImage, ImageManager } from '../../shared/image-upload';
@@ -25,6 +25,9 @@ function buildForm() {
   return new FormGroup(
     {
       category_id: new FormControl<number | null>(null, { validators: [Validators.required] }),
+      subcategory_id: new FormControl<number | null>(null),
+      new_color_name: text(60),
+      new_color_hex: new FormControl('#000000', { nonNullable: true }),
       name: text(120, 2, true),
       slug: new FormControl('', {
         nonNullable: true,
@@ -91,12 +94,19 @@ export class ProductFormPage {
   protected readonly images = signal<GalleryImage[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly product = signal<Product | null>(null);
+  protected readonly colors = signal<ProductColor[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
   protected readonly saving = signal(false);
   protected readonly formError = signal<string | null>(null);
+  protected readonly colorError = signal<string | null>(null);
   protected readonly unmatched = signal<FieldError[]>([]);
   private slugTouched = false;
+  private nextDraftColorId = -1;
+
+  protected subcategoriesFor(categoryId: number | null): Category[] {
+    return this.categories().find((category) => category.id === categoryId)?.subcategories ?? [];
+  }
 
   constructor() {
     this.form.controls.name.valueChanges.subscribe((name) => {
@@ -136,6 +146,9 @@ export class ProductFormPage {
   private patch(p: Product): void {
     this.form.reset({
       category_id: p.category_id,
+      subcategory_id: p.subcategory_id,
+      new_color_name: '',
+      new_color_hex: '#000000',
       name: p.name,
       slug: p.slug,
       sku: p.sku,
@@ -159,7 +172,13 @@ export class ProductFormPage {
       meta_title: p.meta_title ?? '',
       meta_description: p.meta_description ?? '',
     });
-    this.images.set(p.images.map((i) => ({ url: i.url, alt: i.alt })));
+    this.colors.set(p.colors ?? []);
+    this.images.set(p.images.map((i) => ({
+      url: i.url,
+      alt: i.alt,
+      color_id: i.color_id ?? null,
+      is_primary: i.is_primary ?? false,
+    })));
   }
 
   protected onSlugInput(): void {
@@ -186,10 +205,40 @@ export class ProductFormPage {
     return this.form.controls[name];
   }
 
+  protected addColor(): void {
+    const name = this.form.controls.new_color_name.value.trim();
+    const hex = this.form.controls.new_color_hex.value;
+    if (!name) {
+      this.colorError.set('Enter a color name.');
+      return;
+    }
+    if (this.colors().some((color) => color.name.trim().toLowerCase() === name.toLowerCase())) {
+      this.colorError.set('Color names must be unique.');
+      return;
+    }
+    this.colors.update((colors) => [...colors, { id: this.nextDraftColorId--, name, hex_code: hex, sort_order: colors.length }]);
+    this.form.controls.new_color_name.setValue('');
+    this.colorError.set(null);
+  }
+
+  protected updateColor(id: number, field: 'name' | 'hex_code', value: string): void {
+    this.colors.update((colors) => colors.map((color) => color.id === id ? { ...color, [field]: value } : color));
+  }
+
+  protected removeColor(id: number): void {
+    this.colors.update((colors) => colors.filter((color) => color.id !== id)
+      .map((color, sort_order) => ({ ...color, sort_order })));
+    this.images.update((images) => images.map((image) => image.color_id === id
+      ? { ...image, color_id: null, is_primary: false }
+      : image));
+  }
+
   private payload(): ProductIn {
     const v = this.form.getRawValue();
+    const colors = this.colors().map(({ name, hex_code, sort_order }) => ({ name: name.trim(), hex_code, sort_order }));
     return {
       category_id: Number(v.category_id),
+      subcategory_id: v.subcategory_id,
       name: v.name.trim(),
       slug: v.slug.trim(),
       sku: v.sku.trim().toUpperCase(),
@@ -212,7 +261,17 @@ export class ProductFormPage {
       sort_order: Number(v.sort_order),
       meta_title: nullIfBlank(v.meta_title),
       meta_description: nullIfBlank(v.meta_description),
-      images: this.images().map((i) => ({ url: i.url, alt: nullIfBlank(i.alt) })),
+      images: this.images().map((i) => {
+        const color = this.colors().find((item) => item.id === i.color_id);
+        return {
+          url: i.url,
+          alt: nullIfBlank(i.alt),
+          color_id: i.color_id && i.color_id > 0 ? i.color_id : null,
+          color_name: color && color.id < 0 ? color.name : null,
+          is_primary: i.is_primary ?? false,
+        };
+      }),
+      colors,
     };
   }
 
@@ -224,6 +283,15 @@ export class ProductFormPage {
       this.formError.set('Please fix the highlighted fields.');
       setTimeout(() => (document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea') as HTMLElement | null)?.focus());
       return;
+    }
+    if (this.form.controls.new_color_name.value.trim()) {
+      this.addColor();
+      if (this.colorError()) {
+        this.formError.set('Please fix the color entry before saving.');
+        return;
+      }
+    } else {
+      this.colorError.set(null);
     }
     this.saving.set(true);
     try {

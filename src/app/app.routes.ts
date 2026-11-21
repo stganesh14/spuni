@@ -5,7 +5,8 @@ import { authGuard, guestGuard } from './core/auth/auth.guard';
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./pages/home/home').then((m) => m.HomePage), title: 'SPUNI · Handcrafted Vegan Leather' },
   { path: 'shop', loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
-  { path: 'category/:slug', loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
+  { path: 'category/:slug', data: { catalogKind: 'category' }, loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
+  { path: 'subcategory/:slug', data: { catalogKind: 'subcategory' }, loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
   { path: 'product/:slug', loadComponent: () => import('./pages/product/product').then((m) => m.ProductPage) },
   { path: 'cart', loadComponent: () => import('./pages/cart/cart').then((m) => m.CartPage), title: 'Your bag · SPUNI' },
   {

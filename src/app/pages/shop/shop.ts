@@ -60,6 +60,7 @@ export class ShopPage {
 
   // Route params and query params (bound by the router).
   readonly slug = input<string | undefined>();
+  readonly catalogKind = input<string | undefined>();
   readonly q = input<string | undefined>();
   readonly gender = input<string | undefined>();
   readonly sort = input<string | undefined>();
@@ -72,8 +73,14 @@ export class ShopPage {
   protected readonly filtersOpen = signal(false);
 
   protected readonly categories = signal<Category[]>([]);
+  protected readonly subcategory = signal<Category | null>(null);
   protected readonly category = computed(() => this.categories().find((c) => c.slug === this.slug()) ?? null);
-  protected readonly categoryMissing = computed(() => !!this.slug() && this.categoriesLoaded() && !this.category());
+  protected readonly categoryMissing = computed(() =>
+    this.catalogKind() === 'category'
+      && !!this.slug()
+      && this.categoriesLoaded()
+      && !this.category()
+  );
   private readonly categoriesLoaded = signal(false);
 
   protected readonly genderValue = computed<Gender | null>(() => {
@@ -86,7 +93,8 @@ export class ShopPage {
   protected readonly search = computed(() => (this.q() ?? '').trim().slice(0, 80));
 
   private readonly query = computed<ProductQuery>(() => ({
-    category: this.slug() ?? null,
+    category: this.catalogKind() === 'category' ? (this.slug() ?? null) : null,
+    subcategory: this.catalogKind() === 'subcategory' ? (this.slug() ?? null) : null,
     gender: this.genderValue(),
     q: this.search() || null,
     sort: this.sortValue(),
@@ -119,6 +127,7 @@ export class ShopPage {
   );
 
   protected readonly heading = computed(() => {
+    if (this.subcategory()) return this.subcategory()!.name;
     if (this.category()) return this.category()!.name;
     if (this.search()) return `Results for “${this.search()}”`;
     if (this.genderValue() === 'men') return 'For him';
@@ -127,6 +136,18 @@ export class ShopPage {
   });
 
   constructor() {
+    effect(() => {
+      const subcategorySlug = this.catalogKind() === 'subcategory' ? this.slug() : undefined;
+      if (!subcategorySlug) {
+        this.subcategory.set(null);
+        return;
+      }
+      this.api.subcategory(subcategorySlug).subscribe({
+        next: (subcategory) => this.subcategory.set(subcategory),
+        error: () => this.subcategory.set(null),
+      });
+    });
+
     this.api.categories().subscribe({
       next: (c) => {
         this.categories.set(c);
@@ -143,7 +164,11 @@ export class ShopPage {
           title: heading,
           description: cat?.description ?? 'Shop handcrafted vegan leather bags, wallets, belts and travel goods.',
           image: cat?.image_url,
-          path: this.slug() ? `/category/${this.slug()}` : '/shop',
+          path: this.catalogKind() === 'subcategory' && this.slug()
+            ? `/subcategory/${this.slug()}`
+            : this.slug()
+              ? `/category/${this.slug()}`
+              : '/shop',
         }),
       );
     });

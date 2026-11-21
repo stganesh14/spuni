@@ -15,8 +15,9 @@ from app.schemas.catalog import (
     ImageOut,
     LaunchOut,
     MenuCategory,
-    MenuProduct,
+    MenuSubcategory,
     ProductCard,
+    ProductColorOut,
     ProductDetail,
 )
 
@@ -26,6 +27,7 @@ SortKey = Literal["featured", "newest", "price_asc", "price_desc", "name"]
 
 def product_card(product: Product) -> ProductCard:
     images = product.images
+    primary = next((image for image in images if image.is_primary), None)
     return ProductCard(
         id=product.id,
         name=product.name,
@@ -34,8 +36,8 @@ def product_card(product: Product) -> ProductCard:
         price_paise=product.price_paise,
         compare_at_price_paise=product.compare_at_price_paise,
         badge=product.badge,
-        image_url=images[0].url if images else None,
-        hover_image_url=images[1].url if len(images) > 1 else None,
+        image_url=primary.url if primary else images[0].url if images else None,
+        hover_image_url=next((image.url for image in images if image is not primary), None),
         in_stock=product.stock > 0,
         is_customizable=product.is_customizable,
         gender=product.gender,
@@ -62,7 +64,17 @@ def product_detail(product: Product, related: list[Product]) -> ProductDetail:
         dimensions=product.dimensions,
         weight_grams=product.weight_grams,
         care_instructions=product.care_instructions,
-        images=[ImageOut.model_validate(img) for img in product.images],
+        images=[
+            ImageOut(
+                id=img.id, url=img.url, alt=img.alt, sort_order=img.sort_order,
+                color_id=img.color_id, is_primary=img.is_primary,
+            )
+            for img in product.images
+        ],
+        colors=[
+            ProductColorOut(id=color.id, name=color.name, hex_code=color.hex_code, sort_order=color.sort_order)
+            for color in getattr(product, "colors", [])
+        ],
         meta_title=product.meta_title,
         meta_description=product.meta_description,
         related=[product_card(p) for p in related],
@@ -74,7 +86,7 @@ def _active_products() -> Select:
         select(Product)
         .join(Product.category)
         .where(Product.is_active.is_(True), Category.is_active.is_(True))
-        .options(selectinload(Product.images), selectinload(Product.category))
+        .options(selectinload(Product.images), selectinload(Product.category), selectinload(Product.colors))
     )
 
 
@@ -102,6 +114,7 @@ async def list_products(
     db: AsyncSession,
     *,
     category: str | None = None,
+    subcategory: str | None = None,
     gender: str | None = None,
     q: str | None = None,
     min_price: int | None = None,
@@ -116,6 +129,9 @@ async def list_products(
     query = _active_products()
     if category:
         query = query.where(Category.slug == category)
+    if subcategory:
+        subcategory_id = select(Category.id).where(Category.slug == subcategory).scalar_subquery()
+        query = query.where(Product.subcategory_id == subcategory_id)
     if gender:
         query = query.where(or_(Product.gender == gender, Product.gender == "unisex"))
     if q:
@@ -189,13 +205,33 @@ async def list_categories(db: AsyncSession) -> list[CategoryOut]:
     rows = await db.execute(
         select(Category, func.coalesce(counts.c.n, 0))
         .outerjoin(counts, counts.c.category_id == Category.id)
-        .where(Category.is_active.is_(True))
+        .where(Category.is_active.is_(True), Category.parent_id.is_(None))
         .order_by(Category.sort_order, Category.name)
     )
     result = []
     for category, count in rows.all():
-        out = CategoryOut.model_validate(category)
-        out.product_count = int(count)
+        out = CategoryOut(
+            id=category.id,
+            name=category.name,
+            slug=category.slug,
+            tagline=category.tagline,
+            description=category.description,
+            image_url=category.image_url,
+            banner_url=category.banner_url,
+            sort_order=category.sort_order,
+            product_count=int(count),
+            subcategories=[],
+        )
+        subcats = (
+            await db.execute(
+                select(Category)
+                .where(Category.parent_id == category.id, Category.is_active.is_(True))
+                .order_by(Category.sort_order, Category.name)
+            )
+        ).scalars().all()
+        out.subcategories = [
+            CategoryRef(id=sc.id, name=sc.name, slug=sc.slug) for sc in subcats
+        ]
         result.append(out)
     return result
 
@@ -207,30 +243,75 @@ async def get_category(db: AsyncSession, slug: str) -> CategoryOut:
     raise NotFound("We couldn't find that category.")
 
 
+async def get_subcategory(db: AsyncSession, slug: str) -> CategoryOut:
+    category = (
+        await db.execute(
+            select(Category).where(
+                Category.slug == slug,
+                Category.parent_id.is_not(None),
+                Category.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if category is None:
+        raise NotFound("We couldn't find that subcategory.")
+    counts = await db.scalar(
+        select(func.count(Product.id)).where(
+            Product.subcategory_id == category.id,
+            Product.is_active.is_(True),
+        )
+    ) or 0
+    return CategoryOut(
+        id=category.id,
+        name=category.name,
+        slug=category.slug,
+        tagline=category.tagline,
+        description=category.description,
+        image_url=category.image_url,
+        banner_url=category.banner_url,
+        sort_order=category.sort_order,
+        product_count=int(counts),
+        subcategories=[],
+    )
+
+
 async def build_menu(db: AsyncSession) -> list[MenuCategory]:
     categories = (
         await db.execute(
             select(Category)
-            .where(Category.is_active.is_(True), Category.show_in_menu.is_(True))
+            .where(
+                Category.is_active.is_(True),
+                Category.show_in_menu.is_(True),
+                Category.parent_id.is_(None),
+            )
             .order_by(Category.sort_order, Category.name)
         )
     ).scalars().all()
-    products = (
+    subcategories = (
         await db.execute(
-            select(Product.category_id, Product.name, Product.slug, Product.gender)
-            .where(Product.is_active.is_(True))
-            .order_by(Product.is_bestseller.desc(), Product.sort_order, Product.name)
+            select(Category)
+            .where(
+                Category.parent_id.is_not(None),
+                Category.is_active.is_(True),
+                Category.show_in_menu.is_(True),
+            )
+            .order_by(Category.sort_order, Category.name)
         )
-    ).all()
-    by_category: dict[int, list[MenuProduct]] = {}
-    for category_id, name, slug, gender in products:
-        bucket = by_category.setdefault(category_id, [])
-        if len(bucket) < 12:
-            bucket.append(MenuProduct(name=name, slug=slug, gender=gender))
+    ).scalars().all()
+    by_category: dict[int, list[MenuSubcategory]] = {}
+    for subcategory in subcategories:
+        if subcategory.parent_id:
+            by_category.setdefault(subcategory.parent_id, []).append(
+                MenuSubcategory(
+                    name=subcategory.name,
+                    slug=subcategory.slug,
+                    image_url=subcategory.image_url,
+                )
+            )
     return [
         MenuCategory(
             name=c.name, slug=c.slug, image_url=c.image_url, tagline=c.tagline,
-            products=by_category.get(c.id, []),
+            subcategories=by_category.get(c.id, []),
         )
         for c in categories
     ]

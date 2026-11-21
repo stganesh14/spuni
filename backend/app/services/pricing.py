@@ -64,7 +64,7 @@ async def price_cart(
         select(Product)
         .join(Product.category)
         .where(Product.id.in_(merged.keys()))
-        .options(selectinload(Product.images), selectinload(Product.category))
+        .options(selectinload(Product.images), selectinload(Product.category), selectinload(Product.colors))
         .order_by(Product.id)
     )
     if lock:
@@ -76,6 +76,7 @@ async def price_cart(
     subtotal = 0
     for product_id, quantity in merged.items():
         product = products.get(product_id)
+        selected = next((item for item in items if item.product_id == product_id), None)
         if product is None or not product.is_active or not isinstance(product.category, Category) \
                 or not product.category.is_active:
             issues.append(f"An item in your bag is no longer available (#{product_id}).")
@@ -86,13 +87,25 @@ async def price_cart(
             issue = "Out of stock"
         elif quantity > available:
             issue = f"Only {available} left"
+        selected_color = next(
+            (color for color in product.colors if selected and color.id == selected.color_id), None
+        )
+        if product.colors and selected_color is None:
+            issue = issue or "Choose a valid color"
+        elif not product.colors and selected and selected.color_id is not None:
+            issue = issue or "This product has no color options"
+        color_images = [image for image in product.images if selected_color and image.color_id == selected_color.id]
+        selected_image = next((image.url for image in color_images if image.is_primary), None)
+        selected_image = selected_image or next((image.url for image in color_images), product.primary_image)
         line_total = product.price_paise * quantity
         lines.append(
             QuoteLine(
                 product_id=product.id,
+                color_id=selected_color.id if selected_color else None,
+                color_name=selected_color.name if selected_color else None,
                 name=product.name,
                 slug=product.slug,
-                image_url=product.primary_image,
+                image_url=selected_image,
                 unit_price_paise=product.price_paise,
                 quantity=quantity,
                 line_total_paise=line_total,

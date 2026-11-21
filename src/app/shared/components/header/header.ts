@@ -94,9 +94,7 @@ export class Header {
   protected readonly genderMenu = computed(() => {
     const panel = this.panel();
     if (panel !== 'men' && panel !== 'women') return [];
-    return this.categories()
-      .map((c) => ({ ...c, products: c.products.filter((p) => p.gender === panel || p.gender === 'unisex') }))
-      .filter((c) => c.products.length > 0);
+    return this.categories();
   });
 
   private readonly search$ = new Subject<string>();

@@ -59,5 +59,6 @@ class StoreInfoOut(OutputModel):
     header_text_1: str
     header_text_2: str
     customization_marquee_text: str
+    home_media: dict[str, str]
     payment_mode: str
     razorpay_key_id: str | None

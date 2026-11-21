@@ -3,12 +3,21 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB, Admin, current_admin
 from app.core.errors import AppError, Conflict, NotFound
-from app.models import Banner, Category, Launch, LaunchSubscription, OrderItem, Product, ProductImage
+from app.models import (
+    Banner,
+    Category,
+    Launch,
+    LaunchSubscription,
+    OrderItem,
+    Product,
+    ProductColor,
+    ProductImage,
+)
 from app.schemas.admin import (
     AdminBannerOut,
     AdminCategoryOut,
@@ -29,15 +38,16 @@ from app.services import media
 
 router = APIRouter(prefix="/admin", tags=["admin-catalog"], dependencies=[Depends(current_admin)])
 
-MediaFolder = Literal["products", "categories", "launches", "banners"]
+MediaFolder = Literal["products", "categories", "launches", "banners", "homepage"]
 
 
 # -------------------------------------------------------------------- media
 
 
 @router.post("/media/{folder}", status_code=201)
-async def upload_media(folder: MediaFolder, file: Annotated[UploadFile, File()]) -> dict[str, str | int]:
-    stored = await media.save_image(file, folder)
+async def upload_media(folder: MediaFolder, file: Annotated[UploadFile, File()], db: DB) -> dict[str, str | int]:
+    stored = await media.save_image(file, folder, db)
+    await db.commit()
     return {"url": stored.url, "size_bytes": stored.size_bytes}
 
 
@@ -45,27 +55,77 @@ async def upload_media(folder: MediaFolder, file: Annotated[UploadFile, File()])
 
 
 async def _category_out(db: DB, category: Category) -> AdminCategoryOut:
-    out = AdminCategoryOut.model_validate(category)
-    out.product_count = await db.scalar(select(func.count(Product.id)).where(Product.category_id == category.id)) or 0
-    return out
+    subcategory_count = await db.scalar(
+        select(func.count(Category.id)).where(Category.parent_id == category.id)
+    ) or 0
+    product_count = await db.scalar(select(func.count(Product.id)).where(
+        or_(Product.category_id == category.id, Product.subcategory_id == category.id)
+    )) or 0
+    return AdminCategoryOut(
+        id=category.id, name=category.name, slug=category.slug,
+        tagline=category.tagline, description=category.description,
+        image_url=category.image_url, banner_url=category.banner_url,
+        sort_order=category.sort_order, is_active=category.is_active,
+        show_in_menu=category.show_in_menu, product_count=product_count,
+        parent_id=category.parent_id, subcategory_count=subcategory_count,
+        subcategories=[], created_at=category.created_at, updated_at=category.updated_at,
+    )
 
 
 @router.get("/categories", response_model=list[AdminCategoryOut])
 async def list_categories(db: DB) -> list[AdminCategoryOut]:
-    counts = dict(
-        (await db.execute(select(Product.category_id, func.count(Product.id)).group_by(Product.category_id))).all()
-    )
+    rows_with_counts = (
+        await db.execute(
+            select(Category.id).outerjoin(
+                Product,
+                or_(Product.category_id == Category.id, Product.subcategory_id == Category.id),
+            ).group_by(Category.id)
+        )
+    ).all()
+    counts = {
+        category_id: int(await db.scalar(select(func.count(Product.id)).where(
+            or_(Product.category_id == category_id, Product.subcategory_id == category_id)
+        )) or 0)
+        for (category_id,) in rows_with_counts
+    }
     rows = (await db.execute(select(Category).order_by(Category.sort_order, Category.name))).scalars().all()
     result = []
     for c in rows:
-        out = AdminCategoryOut.model_validate(c)
-        out.product_count = counts.get(c.id, 0)
+        subcategory_count = await db.scalar(
+            select(func.count(Category.id)).where(Category.parent_id == c.id)
+        ) or 0
+        subcats = (
+            await db.execute(
+                select(Category).where(Category.parent_id == c.id).order_by(Category.sort_order, Category.name)
+            )
+        ).scalars().all()
+        out = AdminCategoryOut(
+            id=c.id, name=c.name, slug=c.slug, tagline=c.tagline,
+            description=c.description, image_url=c.image_url, banner_url=c.banner_url,
+            sort_order=c.sort_order, is_active=c.is_active, show_in_menu=c.show_in_menu,
+            product_count=counts.get(c.id, 0), parent_id=c.parent_id,
+            subcategory_count=subcategory_count,
+            subcategories=[
+                AdminCategoryOut(
+                    id=sc.id, name=sc.name, slug=sc.slug, tagline=sc.tagline,
+                    description=sc.description, image_url=sc.image_url, banner_url=sc.banner_url,
+                    sort_order=sc.sort_order, is_active=sc.is_active, show_in_menu=sc.show_in_menu,
+                    product_count=0, parent_id=sc.parent_id, subcategory_count=0,
+                    subcategories=[], created_at=sc.created_at, updated_at=sc.updated_at,
+                )
+                for sc in subcats
+            ],
+            created_at=c.created_at, updated_at=c.updated_at,
+        )
         result.append(out)
     return result
 
 
 async def _check_category_unique(db: DB, body: CategoryIn, exclude_id: int | None = None) -> None:
-    query = select(Category.id).where(or_(Category.slug == body.slug, func.lower(Category.name) == body.name.lower()))
+    query = select(Category.id).where(or_(Category.slug == body.slug, and_(
+        Category.parent_id == body.parent_id,
+        func.lower(Category.name) == body.name.lower(),
+    )))
     if exclude_id:
         query = query.where(Category.id != exclude_id)
     if await db.scalar(query):
@@ -75,6 +135,12 @@ async def _check_category_unique(db: DB, body: CategoryIn, exclude_id: int | Non
 @router.post("/categories", response_model=AdminCategoryOut, status_code=201)
 async def create_category(body: CategoryIn, db: DB) -> AdminCategoryOut:
     await _check_category_unique(db, body)
+    if body.parent_id:
+        parent = await db.get(Category, body.parent_id)
+        if parent is None or parent.parent_id is not None:
+            raise AppError("Choose a valid top-level category.", code="invalid_parent_category")
+        if body.image_url is None:
+            body.image_url = parent.image_url
     category = Category(**body.model_dump())
     db.add(category)
     await db.commit()
@@ -87,6 +153,12 @@ async def update_category(category_id: int, body: CategoryIn, db: DB) -> AdminCa
     category = await db.get(Category, category_id)
     if category is None:
         raise NotFound("Category not found.")
+    if body.parent_id:
+        if body.parent_id == category_id:
+            raise AppError("A category cannot be its own parent.", code="invalid_parent_category")
+        parent = await db.get(Category, body.parent_id)
+        if parent is None or parent.parent_id is not None:
+            raise AppError("Choose a valid top-level category.", code="invalid_parent_category")
     await _check_category_unique(db, body, exclude_id=category_id)
     for field, value in body.model_dump().items():
         setattr(category, field, value)
@@ -100,8 +172,14 @@ async def delete_category(category_id: int, db: DB) -> Response:
     category = await db.get(Category, category_id)
     if category is None:
         raise NotFound("Category not found.")
-    if await db.scalar(select(func.count(Product.id)).where(Product.category_id == category_id)):
-        raise Conflict("Move or delete this category's products first, or hide the category instead.",
+    used_products = await db.scalar(
+        select(func.count(Product.id)).where(
+            or_(Product.category_id == category_id, Product.subcategory_id == category_id)
+        )
+    )
+    subcategories = await db.scalar(select(func.count(Category.id)).where(Category.parent_id == category_id))
+    if used_products or subcategories:
+        raise Conflict("Move or delete this category's products and subcategories first, or hide the category instead.",
                        code="category_in_use")
     await db.delete(category)
     await db.commit()
@@ -113,16 +191,24 @@ async def delete_category(category_id: int, db: DB) -> Response:
 
 def _product_out(product: Product) -> AdminProductOut:
     data = {c: getattr(product, c) for c in AdminProductOut.model_fields if hasattr(product, c)
-            and c not in ("images", "category_name")}
+            and c not in ("images", "colors", "category_name", "subcategory_name")}
     return AdminProductOut(**data, category_name=product.category.name,
-                           images=[{"id": i.id, "url": i.url, "alt": i.alt, "sort_order": i.sort_order}
-                                   for i in product.images])
+                          subcategory_name=product.subcategory.name if product.subcategory else None,
+                           images=[{"id": i.id, "url": i.url, "alt": i.alt,
+                                    "sort_order": i.sort_order, "color_id": i.color_id,
+                                    "is_primary": i.is_primary}
+                                   for i in product.images],
+                           colors=[
+                               {"id": c.id, "name": c.name, "hex_code": c.hex_code, "sort_order": c.sort_order}
+                               for c in getattr(product, "colors", [])
+                           ])
 
 
 async def _load_product(db: DB, product_id: int) -> Product:
     product = (
         await db.execute(select(Product).where(Product.id == product_id)
-                         .options(selectinload(Product.images), selectinload(Product.category)))
+                         .options(selectinload(Product.images), selectinload(Product.category),
+                                 selectinload(Product.subcategory), selectinload(Product.colors)))
     ).scalar_one_or_none()
     if product is None:
         raise NotFound("Product not found.")
@@ -138,7 +224,12 @@ async def list_products(
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> Page[AdminProductOut]:
-    query = select(Product).options(selectinload(Product.images), selectinload(Product.category))
+    query = select(Product).options(
+        selectinload(Product.images),
+        selectinload(Product.category),
+        selectinload(Product.subcategory),
+        selectinload(Product.colors),
+    )
     if q:
         pattern = f"%{q.strip()}%"
         query = query.where(or_(Product.name.ilike(pattern), Product.sku.ilike(pattern), Product.slug.ilike(pattern)))
@@ -166,8 +257,13 @@ async def get_product(product_id: int, db: DB) -> AdminProductOut:
 
 
 async def _validate_product(db: DB, body: ProductIn, exclude_id: int | None = None) -> None:
-    if await db.get(Category, body.category_id) is None:
+    category = await db.get(Category, body.category_id)
+    if category is None or category.parent_id is not None:
         raise AppError("Choose a valid category.", code="invalid_category")
+    if body.subcategory_id:
+        subcategory = await db.get(Category, body.subcategory_id)
+        if subcategory is None or subcategory.parent_id != body.category_id:
+            raise AppError("Choose a subcategory from the selected category.", code="invalid_subcategory")
     query = select(Product.id).where(or_(Product.slug == body.slug, Product.sku == body.sku))
     if exclude_id:
         query = query.where(Product.id != exclude_id)
@@ -177,6 +273,8 @@ async def _validate_product(db: DB, body: ProductIn, exclude_id: int | None = No
 
 def _apply_images(product: Product, body: ProductIn) -> list[str]:
     """Sync images with the payload; returns URLs to delete after commit."""
+    colors_by_name = {color.name.strip().casefold(): color.id for color in product.colors}
+    color_ids = {color.id for color in product.colors}
     keep = {img.url for img in body.images}
     removed = []
     for existing in list(product.images):
@@ -185,20 +283,53 @@ def _apply_images(product: Product, body: ProductIn) -> list[str]:
             removed.append(existing.url)
     by_url = {img.url: img for img in product.images}
     for index, image in enumerate(body.images):
+        color_id = image.color_id
+        if image.color_name:
+            color_id = colors_by_name.get(image.color_name.strip().casefold())
+            if color_id is None:
+                raise AppError("Choose a color belonging to this product.", code="invalid_product_color")
+        elif color_id is not None and color_id not in color_ids:
+            raise AppError("Choose a color belonging to this product.", code="invalid_product_color")
         row = by_url.get(image.url)
         if row is None:
-            product.images.append(ProductImage(url=image.url, alt=image.alt, sort_order=index))
+            product.images.append(ProductImage(
+                url=image.url, alt=image.alt, sort_order=index,
+                color_id=color_id, is_primary=image.is_primary,
+            ))
         else:
-            row.alt, row.sort_order = image.alt, index
+            row.alt, row.sort_order, row.color_id, row.is_primary = (
+                image.alt, index, color_id, image.is_primary
+            )
     return removed
+
+
+def _sync_colors(product: Product, body: ProductIn) -> None:
+    submitted_names = {color.name.strip().lower(): color for color in body.colors}
+    for existing in list(product.colors):
+        key = existing.name.strip().lower()
+        incoming = submitted_names.pop(key, None)
+        if incoming is None:
+            product.colors.remove(existing)
+        else:
+            existing.name = incoming.name.strip()
+            existing.hex_code = incoming.hex_code
+            existing.sort_order = incoming.sort_order
+    for incoming in submitted_names.values():
+        product.colors.append(ProductColor(
+            name=incoming.name.strip(),
+            hex_code=incoming.hex_code,
+            sort_order=incoming.sort_order,
+        ))
 
 
 @router.post("/products", response_model=AdminProductOut, status_code=201)
 async def create_product(body: ProductIn, db: DB) -> AdminProductOut:
     await _validate_product(db, body)
-    product = Product(**body.model_dump(exclude={"images"}), images=[])
-    _apply_images(product, body)
+    product = Product(**body.model_dump(exclude={"images", "colors"}), images=[], colors=[])
+    _sync_colors(product, body)
     db.add(product)
+    await db.flush()
+    _apply_images(product, body)
     await db.commit()
     return _product_out(await _load_product(db, product.id))
 
@@ -207,8 +338,10 @@ async def create_product(body: ProductIn, db: DB) -> AdminProductOut:
 async def update_product(product_id: int, body: ProductIn, db: DB) -> AdminProductOut:
     product = await _load_product(db, product_id)
     await _validate_product(db, body, exclude_id=product_id)
-    for field, value in body.model_dump(exclude={"images"}).items():
+    for field, value in body.model_dump(exclude={"images", "colors"}).items():
         setattr(product, field, value)
+    _sync_colors(product, body)
+    await db.flush()
     removed = _apply_images(product, body)
     await db.commit()
     for url in removed:

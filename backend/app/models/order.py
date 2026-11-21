@@ -151,6 +151,8 @@ class OrderItem(IdMixin, Base):
     product_slug: Mapped[str | None] = mapped_column(String(140))
     sku: Mapped[str | None] = mapped_column(String(40))
     image_url: Mapped[str | None] = mapped_column(String(500))
+    color_id: Mapped[int | None] = mapped_column(BigInteger)
+    color_name: Mapped[str | None] = mapped_column(String(60))
     unit_price_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     line_total_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -354,6 +356,9 @@ class StoreSettings(Base):
     )
     support_phone: Mapped[str] = mapped_column(
         String(20), nullable=False, default="+919176969556", server_default="+919176969556"
+    )
+    home_media: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
     )
     header_text_1: Mapped[str] = mapped_column(
         Text, nullable=False,

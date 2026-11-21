@@ -10,6 +10,8 @@ from app.schemas.common import Email, InputModel, OutputModel, PersonName, SafeT
 class CartLineIn(InputModel):
     product_id: int = Field(gt=0)
     quantity: int = Field(ge=1, le=10)
+    color_id: int | None = Field(default=None, gt=0)
+    color_name: SafeText(0, 60) | None = None
 
 
 CartLines = Annotated[list[CartLineIn], Field(min_length=1, max_length=30)]
@@ -31,6 +33,8 @@ class QuoteIn(InputModel):
 
 class QuoteLine(OutputModel):
     product_id: int
+    color_id: int | None = None
+    color_name: str | None = None
     name: str
     slug: str
     image_url: str | None
@@ -106,6 +110,8 @@ class OrderItemOut(OutputModel):
     product_slug: str | None
     sku: str | None
     image_url: str | None
+    color_id: int | None = None
+    color_name: str | None = None
     unit_price_paise: int
     quantity: int
     line_total_paise: int

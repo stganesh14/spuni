@@ -7,6 +7,8 @@ import { safeStorage } from '../utils/storage';
 export interface CartItem {
   product_id: number;
   quantity: number;
+  color_id: number | null;
+  color_name: string | null;
   name: string;
   slug: string;
   image_url: string | null;
@@ -27,7 +29,12 @@ export class CartService {
   readonly drawerOpen = signal(false);
   readonly count = computed(() => this.items().reduce((sum, i) => sum + i.quantity, 0));
   readonly subtotalHint = computed(() => this.items().reduce((sum, i) => sum + i.price_paise * i.quantity, 0));
-  readonly lines = computed(() => this.items().map((i) => ({ product_id: i.product_id, quantity: i.quantity })));
+  readonly lines = computed(() => this.items().map((i) => ({
+    product_id: i.product_id,
+    quantity: i.quantity,
+    color_id: i.color_id,
+    color_name: i.color_name,
+  })));
   /** Bumps whenever an item is added so the header bag can play its animation. */
   readonly pulse = signal(0);
 
@@ -43,12 +50,14 @@ export class CartService {
     }
   }
 
-  add(product: ProductCard | ProductDetail, quantity = 1, openDrawer = true): void {
+  add(product: ProductCard | ProductDetail, quantity = 1, openDrawer = true, colorId: number | null = null, colorName: string | null = null): void {
     this.items.update((items) => {
-      const existing = items.find((i) => i.product_id === product.id);
+      const existing = items.find((i) => i.product_id === product.id && i.color_id === colorId);
       if (existing) {
         return items.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + quantity) } : i,
+          i.product_id === product.id && i.color_id === colorId
+            ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + quantity) }
+            : i,
         );
       }
       if (items.length >= MAX_LINES) return items;
@@ -57,6 +66,8 @@ export class CartService {
         {
           product_id: product.id,
           quantity: Math.min(MAX_QTY, quantity),
+          color_id: colorId,
+          color_name: colorName,
           name: product.name,
           slug: product.slug,
           image_url: product.image_url,

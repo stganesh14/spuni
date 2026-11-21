@@ -1,6 +1,9 @@
 """Import every model so SQLAlchemy metadata (and Alembic) see all tables."""
 
-from app.models.catalog import Banner, Category, Launch, LaunchSubscription, Product, ProductImage, WishlistItem
+from app.models.catalog import (
+    Banner, Category, Launch, LaunchSubscription, MediaAsset, Product,
+    ProductColor, ProductImage, WishlistItem,
+)
 from app.models.engagement import ContactMessage, CustomizationFile, CustomizationRequest, EmailOutbox
 from app.models.order import (
     GiftCard,
@@ -31,7 +34,9 @@ __all__ = [
     "OrderItem",
     "OtpCode",
     "Payment",
+    "MediaAsset",
     "Product",
+    "ProductColor",
     "ProductImage",
     "StoreSettings",
     "User",

@@ -37,6 +37,7 @@
                     <div>
                       <strong>{{ c.name }}</strong>
                       <span class="muted small">{{ c.tagline }}</span>
+                      @if (c.parent_id) { <span class="badge">Subcategory</span> }
                     </div>
                   </div>
                 </td>
@@ -71,6 +72,14 @@
         <p class="form-alert" role="alert">{{ formError() }}</p>
       }
       <div class="form-grid">
+        <app-field class="span-2" label="Parent category" for="c-parent" [control]="form.controls.parent_id" hint="Leave empty for a top-level category.">
+          <select id="c-parent" class="select" formControlName="parent_id">
+            <option [ngValue]="null">Top-level category</option>
+            @for (p of items(); track p.id) {
+              @if (!p.parent_id) { <option [ngValue]="p.id">{{ p.name }}</option> }
+            }
+          </select>
+        </app-field>
         <app-field label="Name" for="c-name" [required]="true" [control]="form.controls.name">
           <input id="c-name" class="input" formControlName="name" maxlength="80" />
         </app-field>

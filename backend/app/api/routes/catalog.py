@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -10,7 +10,7 @@ from app.api.deps import DB, OptionalCustomer
 from app.core.config import settings
 from app.core.errors import AppError
 from app.core.ratelimit import rate_limit
-from app.models import Banner, Launch
+from app.models import Banner, Launch, MediaAsset
 from app.models.enums import LaunchStatus
 from app.schemas.catalog import (
     BannerOut,
@@ -32,6 +32,18 @@ from app.services.store import get_store_settings
 router = APIRouter(tags=["catalog"])
 
 SlugPath = Annotated[str, Query(min_length=1, max_length=140, pattern=r"^[a-z0-9-]+$")]
+
+
+@router.get("/media/{asset_id}")
+async def media_asset(asset_id: int, db: DB) -> Response:
+    asset = await db.get(MediaAsset, asset_id)
+    if asset is None:
+        return Response(status_code=404)
+    return Response(
+        content=asset.data,
+        media_type=asset.content_type,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @router.get("/home", response_model=HomeOut)
@@ -68,6 +80,7 @@ async def store_info(db: DB) -> StoreInfoOut:
         header_text_1=store.header_text_1,
         header_text_2=store.header_text_2,
         customization_marquee_text=store.customization_marquee_text,
+        home_media=store.home_media or {},
     )
 
 
@@ -88,10 +101,16 @@ async def category(slug: str, db: DB) -> CategoryOut:
     return await catalog_service.get_category(db, slug)
 
 
+@router.get("/subcategories/{slug}", response_model=CategoryOut)
+async def subcategory(slug: str, db: DB) -> CategoryOut:
+    return await catalog_service.get_subcategory(db, slug)
+
+
 @router.get("/products", response_model=Page[ProductCard])
 async def products(
     db: DB,
     category: Annotated[str | None, Query(max_length=90, pattern=r"^[a-z0-9-]+$")] = None,
+    subcategory: Annotated[str | None, Query(max_length=90, pattern=r"^[a-z0-9-]+$")] = None,
     gender: Annotated[Literal["men", "women", "unisex"] | None, Query()] = None,
     q: Annotated[str | None, Query(min_length=1, max_length=80)] = None,
     min_price: Annotated[int | None, Query(ge=0, le=100_000_000)] = None,
@@ -107,7 +126,7 @@ async def products(
     if min_price is not None and max_price is not None and min_price > max_price:
         raise AppError("Minimum price cannot exceed maximum price.", code="invalid_price_range")
     rows, total = await catalog_service.list_products(
-        db, category=category, gender=gender, q=q.strip() if q else None, min_price=min_price,
+        db, category=category, subcategory=subcategory, gender=gender, q=q.strip() if q else None, min_price=min_price,
         max_price=max_price, in_stock=in_stock, customizable=customizable,
         ids=[int(i) for i in ids.split(",")] if ids else None, sort=sort, page=page,
         page_size=page_size,

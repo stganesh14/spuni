@@ -81,11 +81,22 @@ export class ProductPage {
   protected readonly qty = signal(1);
   protected readonly open = signal<string | null>('details');
   protected readonly added = signal(false);
+  protected readonly selectedColorId = signal<number | null>(null);
 
   protected readonly images = computed(() => {
     const p = this.p();
     if (!p) return [];
-    return p.images.length ? p.images.map((i) => ({ url: i.url, alt: i.alt || p.name })) : p.image_url ? [{ url: p.image_url, alt: p.name }] : [];
+    const selected = this.selectedColorId();
+    const gallery = p.images.filter((image) =>
+      selected === null || image.color_id === null || image.color_id === selected
+    );
+    return gallery.length
+      ? [...gallery]
+          .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
+          .map((i) => ({ url: i.url, alt: i.alt || p.name }))
+      : p.image_url
+        ? [{ url: p.image_url, alt: p.name }]
+        : [];
   });
   protected readonly maxQty = computed(() => Math.min(MAX_QTY, this.p()?.available_quantity ?? 1));
   protected readonly discount = computed(() => {
@@ -119,6 +130,7 @@ export class ProductPage {
       untracked(() => {
         this.active.set(0);
         this.qty.set(1);
+        this.selectedColorId.set(p.colors?.[0]?.id ?? null);
         this.seo.set({
           title: p.meta_title?.replace(/\s*\|\s*SPUNI.*$/i, '') || p.name,
           description: p.meta_description || p.short_description || p.description,
@@ -171,10 +183,20 @@ export class ProductPage {
     this.qty.set(Math.max(1, Math.min(this.maxQty(), this.qty() + delta)));
   }
 
+  selectColor(colorId: number): void {
+    this.selectedColorId.set(colorId);
+    this.active.set(0);
+  }
+
+  protected selectedColorName(): string | null {
+    const p = this.p();
+    return p?.colors?.find((color) => color.id === this.selectedColorId())?.name ?? null;
+  }
+
   addToBag(): void {
     const p = this.p();
     if (!p || p.stock_status === 'out_of_stock') return;
-    this.cart.add(p, this.qty());
+    this.cart.add(p, this.qty(), true, this.selectedColorId(), this.selectedColorName());
     this.added.set(true);
     setTimeout(() => this.added.set(false), 1800);
   }
@@ -182,7 +204,7 @@ export class ProductPage {
   buyNow(): void {
     const p = this.p();
     if (!p || p.stock_status === 'out_of_stock') return;
-    if (!this.cart.has(p.id)) this.cart.add(p, this.qty(), false);
+    if (!this.cart.has(p.id)) this.cart.add(p, this.qty(), false, this.selectedColorId(), this.selectedColorName());
     this.router.navigateByUrl('/checkout');
   }
 

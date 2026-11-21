@@ -35,7 +35,7 @@
 
       <img
         class="craft-image"
-        src="/assets/crafted.jpeg"
+        [src]="media('ethical_crafted', '/assets/crafted.jpeg')"
         alt="SPUNI leather craftsmanship"
         loading="lazy"
       />
@@ -80,7 +80,7 @@
 
             <img
               class="process-image"
-              [src]="item.image"
+              [src]="media(item.key, item.image)"
               [alt]="item.title"
               loading="lazy"
             />
@@ -116,7 +116,7 @@
     <div class="bottom-material-image">
 
       <img
-        src="/assets/source.jpeg"
+        [src]="media('ethical_source', '/assets/source.jpeg')"
         alt="Responsible leather sourcing"
         loading="lazy"
         data-parallax
@@ -157,7 +157,7 @@
 
       <figure class="final-message-image">
         <img
-          src="/assets/leather-rolls.jpeg"
+          [src]="media('ethical_leather_rolls', '/assets/leather-rolls.jpeg')"
           alt="Rolls of reclaimed hides waiting to be crafted in the SPUNI studio"
           loading="lazy"
         />
