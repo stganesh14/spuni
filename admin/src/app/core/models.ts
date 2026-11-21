@@ -107,6 +107,14 @@ export interface Product {
   updated_at: string;
 }
 
+export interface BulkProductUploadResult {
+  created: number;
+  failed: number;
+  products: { id: number; name: string; sku: string }[];
+  errors: { row: number | null; sku: string | null; message: string }[];
+  warnings: string[];
+}
+
 export interface ProductIn {
   category_id: number;
   subcategory_id: number | null;

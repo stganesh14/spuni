@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, PRIMARY_OUTLET, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { AuthService } from '../core/auth.service';
@@ -19,7 +19,7 @@ interface NavGroup {
 @Component({
   selector: 'app-shell',
   host: { '(document:keydown.escape)': 'navOpen.set(false)' },
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -54,6 +54,7 @@ export class Shell {
       title: 'Catalogue',
       items: [
         { path: '/products', label: 'Products', icon: '▣' },
+        { path: '/products/bulk-upload', label: 'Bulk product upload', icon: '⇧' },
         { path: '/categories', label: 'Categories', icon: '▦' },
         { path: '/launches', label: "What's new", icon: '✺' },
         { path: '/banners', label: 'Hero banners', icon: '▭' },
@@ -68,6 +69,21 @@ export class Shell {
       ],
     },
   ];
+
+  protected isNavItemActive(item: NavItem): boolean {
+    const currentPath =
+      this.router.parseUrl(this.router.url).root.children[PRIMARY_OUTLET]?.segments.map((segment) => segment.path).join('/')
+      ?? '';
+    if (item.path === '/products') {
+      return currentPath === 'products' || currentPath === 'products/new' || /^products\/\d+$/.test(currentPath);
+    }
+    return this.router.isActive(this.router.createUrlTree([item.path]), {
+      paths: item.exact ? 'exact' : 'subset',
+      queryParams: 'ignored',
+      matrixParams: 'ignored',
+      fragment: 'ignored',
+    });
+  }
 
   constructor() {
     // close the mobile drawer after navigating

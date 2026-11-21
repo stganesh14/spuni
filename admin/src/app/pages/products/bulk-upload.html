@@ -1,0 +1,93 @@
+<app-page-header
+  title="Bulk product upload"
+  eyebrow="Catalogue · Products"
+  subtitle="Create many products and their color options from an Excel workbook."
+/>
+
+<section class="card stack">
+  <div>
+    <h2 class="section-title">1. Download the Excel template</h2>
+    <p class="muted">
+      The Instructions sheet explains every field, how to list multiple colors, and how to map shared or color-specific
+      images.
+    </p>
+    <button type="button" class="btn btn-ghost" [disabled]="downloading()" (click)="downloadTemplate()">
+      {{ downloading() ? 'Preparing template…' : 'Download Excel template' }}
+    </button>
+  </div>
+
+  <div>
+    <h2 class="section-title">2. Fill in product and color rows</h2>
+    <p class="muted">
+      Add one row per color (three colors means three rows). Keep the same SKU and product details on every row;
+      change color_name, color_hex and color_images for each color. List multiple images with semicolons. Use existing
+      category slugs.
+    </p>
+  </div>
+
+  <div>
+    <h2 class="section-title">3. Select the workbook and images</h2>
+    <div class="form-grid">
+      <label class="stack">
+        <span class="small"><strong>Completed .xlsx workbook</strong></span>
+        <input class="input" type="file" accept=".xlsx" (change)="selectWorkbook($event)" />
+        @if (workbook(); as file) {
+          <span class="muted small">{{ file.name }}</span>
+        }
+      </label>
+      <label class="stack">
+        <span class="small"><strong>Referenced product images</strong></span>
+        <input class="input" type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="selectImages($event)" />
+        <span class="muted small">
+          {{ images().length }} image file(s) selected. Use JPEG, PNG or WebP, up to 8 MB each and 32 MB total.
+        </span>
+      </label>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="form-alert" role="alert">
+      {{ error() }}
+      @if (details().length) {
+        <ul>
+          @for (detail of details(); track $index) {
+            <li>{{ detail.field ? detail.field + ': ' : '' }}{{ detail.message }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (result(); as uploaded) {
+    <div class="form-success" role="status">
+      Upload finished: {{ uploaded.created }} product(s) created; {{ uploaded.failed }} failed.
+      @if (uploaded.warnings.length) {
+        <ul>
+          @for (warning of uploaded.warnings; track $index) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+    </div>
+    @if (uploaded.errors.length) {
+      <div class="form-alert" role="alert">
+        <strong>These rows were not uploaded:</strong>
+        <ul>
+          @for (item of uploaded.errors; track $index) {
+            <li>
+              @if (item.row) { Row {{ item.row }}@if (item.sku) { · SKU {{ item.sku }} }: }
+              {{ item.message }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  }
+
+  <div class="form-actions">
+    <button type="button" class="btn btn-primary" [disabled]="uploading() || !workbook()" (click)="upload()">
+      {{ uploading() ? 'Validating and uploading…' : 'Upload products' }}
+    </button>
+    <span class="muted small">Valid products are created; failed products and row-specific reasons are listed above.</span>
+  </div>
+</section>

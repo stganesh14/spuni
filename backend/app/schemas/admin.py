@@ -163,6 +163,26 @@ class AdminProductOut(OutputModel):
     updated_at: datetime
 
 
+class BulkProductUploadError(OutputModel):
+    row: int | None = None
+    sku: str | None = None
+    message: str
+
+
+class BulkProductUploadItem(OutputModel):
+    id: int
+    name: str
+    sku: str
+
+
+class BulkProductUploadOut(OutputModel):
+    created: int
+    failed: int
+    products: list[BulkProductUploadItem]
+    errors: list[BulkProductUploadError]
+    warnings: list[str]
+
+
 class LaunchIn(InputModel):
     title: SafeText(2, 120)
     slug: Slug

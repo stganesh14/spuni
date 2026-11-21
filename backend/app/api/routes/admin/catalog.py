@@ -3,10 +3,14 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
+from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB, Admin, current_admin
+from app.core.config import settings
 from app.core.errors import AppError, Conflict, NotFound
 from app.models import (
     Banner,
@@ -24,6 +28,7 @@ from app.schemas.admin import (
     AdminLaunchOut,
     AdminProductOut,
     BannerIn,
+    BulkProductUploadOut,
     CategoryIn,
     LaunchIn,
     LaunchNotifyIn,
@@ -33,8 +38,8 @@ from app.schemas.admin import (
     StockAdjustIn,
 )
 from app.schemas.common import Page, paginate_meta
+from app.services import bulk_products, media
 from app.services import launches as launch_service
-from app.services import media
 
 router = APIRouter(prefix="/admin", tags=["admin-catalog"], dependencies=[Depends(current_admin)])
 
@@ -249,6 +254,212 @@ async def list_products(
                          .offset((page - 1) * page_size).limit(page_size))
     ).scalars().all()
     return Page[AdminProductOut](items=[_product_out(p) for p in rows], **paginate_meta(total, page, page_size))
+
+
+@router.get("/products/bulk-template")
+async def download_bulk_product_template() -> StreamingResponse:
+    content = bulk_products.build_template()
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="spuni-bulk-products-template.xlsx"'},
+    )
+
+
+@router.post("/products/bulk-upload", response_model=BulkProductUploadOut, status_code=201)
+async def bulk_upload_products(
+    workbook: Annotated[UploadFile, File()],
+    db: DB,
+    images: Annotated[list[UploadFile] | None, File()] = None,
+) -> BulkProductUploadOut:
+    workbook_data = await workbook.read(10 * 1024 * 1024 + 1)
+    if len(workbook_data) > 10 * 1024 * 1024:
+        raise AppError("The Excel workbook must be 10 MB or smaller.", code="file_too_large")
+    parsed, errors = bulk_products.parse_workbook(workbook_data)
+
+    image_uploads: dict[str, UploadFile] = {}
+    duplicate_image_names: set[str] = set()
+    warnings: list[str] = []
+    for upload in images or []:
+        name = upload.filename or ""
+        if not name or "/" in name or "\\" in name or name in {".", ".."}:
+            warnings.append(f"Ignored an uploaded image with an invalid filename: {name or '(empty filename)'}.")
+            continue
+        key = name.casefold()
+        if key in image_uploads:
+            duplicate_image_names.add(key)
+        else:
+            image_uploads[key] = upload
+    if len(image_uploads) > 3600:
+        raise AppError("Select no more than 3,600 image files.", code="bulk_limit_exceeded")
+    categories = (await db.execute(select(Category))).scalars().all()
+    categories_by_id = {category.id: category for category in categories}
+    roots_by_slug = {category.slug: category for category in categories if category.parent_id is None}
+    subcategories_by_parent_slug = {
+        (parent.slug, category.slug): category
+        for category in categories
+        if category.parent_id is not None
+        for parent in [categories_by_id.get(category.parent_id)]
+        if parent is not None
+    }
+
+    products: list[tuple[ProductIn, dict[str, object], int]] = []
+    seen_skus: set[str] = set()
+    seen_slugs: set[str] = set()
+    for item in parsed:
+        shared = item["shared"]
+        row_number = item["row"]
+        try:
+            category_slug = shared["category_slug"]
+            subcategory_slug = shared["subcategory_slug"]
+            category = roots_by_slug.get(category_slug)
+            if category is None:
+                raise ValueError(f"unknown top-level category slug: {category_slug}")
+            subcategory = None
+            if subcategory_slug:
+                subcategory = subcategories_by_parent_slug.get((category_slug, subcategory_slug))
+                if subcategory is None:
+                    raise ValueError(f"unknown subcategory slug {subcategory_slug} under {category_slug}")
+            product_data = {key: value for key, value in shared.items()
+                            if key not in {"category_slug", "subcategory_slug"}}
+            product_data["category_id"] = category.id
+            product_data["subcategory_id"] = subcategory.id if subcategory else None
+            product_data["colors"] = [
+                {"name": color["name"], "hex_code": color["hex_code"], "sort_order": index}
+                for index, color in enumerate(item["colors"])
+            ]
+            product = ProductIn.model_validate(product_data)
+            if product.sku in seen_skus or product.slug in seen_slugs:
+                raise ValueError("SKU and slug must each be unique within the workbook")
+            seen_skus.add(product.sku)
+            seen_slugs.add(product.slug)
+            await _validate_product(db, product)
+            products.append((product, item, row_number))
+        except (ValueError, ValidationError, AppError) as exc:
+            message = exc.message if isinstance(exc, AppError) else str(exc)
+            errors.append({"row": row_number, "sku": shared.get("sku"), "message": message})
+
+    referenced = {
+        name.casefold()
+        for _, item, _ in products
+        for name in item["common_images"] + [filename for color in item["colors"] for filename in color["images"]]
+    }
+    unused = sorted(set(image_uploads) - referenced)
+    if unused:
+        warnings.append("Unused image files were ignored: " + ", ".join(unused[:20]))
+    image_bytes: dict[str, bytes] = {}
+    image_issues: dict[str, str] = {
+        name: f"More than one uploaded image is named {image_uploads[name].filename}."
+        for name in duplicate_image_names
+        if name in image_uploads
+    }
+    total_bytes = 0
+    max_image_bytes = settings.max_upload_mb * 1024 * 1024
+    for name in referenced:
+        upload = image_uploads.get(name)
+        if upload is None:
+            image_issues[name] = f"Referenced image {name} was not selected."
+            continue
+        if name in duplicate_image_names:
+            continue
+        data = await upload.read(max_image_bytes + 1)
+        if len(data) > max_image_bytes:
+            image_issues[name] = (
+                f"Image {upload.filename} is too large. Maximum size is {settings.max_upload_mb} MB."
+            )
+            continue
+        total_bytes += len(data)
+        image_bytes[name] = data
+    if total_bytes > 32 * 1024 * 1024:
+        image_issues.update({
+            name: "The referenced image files exceed the 32 MB total upload limit."
+            for name in referenced
+        })
+        image_bytes.clear()
+
+    created: list[dict[str, object]] = []
+    for body, item, row_number in products:
+        sku = body.sku
+        image_names = item["common_images"] + [
+            filename for color in item["colors"] for filename in color["images"]
+        ]
+        bad_images = list(dict.fromkeys(
+            name for name in image_names if name.casefold() in image_issues
+        ))
+        if bad_images:
+            errors.append({
+                "row": row_number,
+                "sku": sku,
+                "message": "Image error: " + "; ".join(image_issues[name.casefold()] for name in bad_images),
+            })
+            continue
+
+        product_result: dict[str, object] | None = None
+        try:
+            async with db.begin_nested():
+                stored_urls: dict[str, str] = {}
+                for name in image_names:
+                    key = name.casefold()
+                    if key not in stored_urls:
+                        stored = await media.store_image_bytes(
+                            image_bytes[key], "products", image_uploads[key].filename or name, db
+                        )
+                        stored_urls[key] = stored.url
+                image_inputs = []
+                is_first_image = True
+                for name in item["common_images"]:
+                    image_inputs.append({
+                        "url": stored_urls[name.casefold()],
+                        "alt": "".join(character for character in name if character.isprintable())[:160] or None,
+                        "is_primary": is_first_image,
+                    })
+                    is_first_image = False
+                for color in item["colors"]:
+                    for name in color["images"]:
+                        image_inputs.append({
+                            "url": stored_urls[name.casefold()],
+                            "alt": "".join(character for character in name if character.isprintable())[:160] or None,
+                            "color_name": color["name"],
+                            "is_primary": is_first_image,
+                        })
+                        is_first_image = False
+                product_body = ProductIn.model_validate({**body.model_dump(), "images": image_inputs})
+                product = Product(
+                    **product_body.model_dump(exclude={"images", "colors"}),
+                    images=[],
+                    colors=[],
+                )
+                _sync_colors(product, product_body)
+                db.add(product)
+                await db.flush()
+                _apply_images(product, product_body)
+                await db.flush()
+                product_result = {"id": product.id, "name": product.name, "sku": product.sku}
+        except AppError as exc:
+            product_result = None
+            errors.append({"row": row_number, "sku": sku, "message": exc.message})
+        except ValidationError as exc:
+            product_result = None
+            errors.append({"row": row_number, "sku": sku, "message": str(exc)})
+        except IntegrityError:
+            product_result = None
+            errors.append({
+                "row": row_number,
+                "sku": sku,
+                "message": "This product conflicts with existing data (its SKU or slug may already exist).",
+            })
+        if product_result is not None:
+            created.append(product_result)
+    await db.commit()
+    failed_keys = {str(error["sku"]).casefold() for error in errors if error.get("sku")}
+    failed_without_sku = sum(1 for error in errors if not error.get("sku"))
+    return BulkProductUploadOut(
+        created=len(created),
+        failed=len(failed_keys) + failed_without_sku,
+        products=created,
+        errors=errors,
+        warnings=warnings,
+    )
 
 
 @router.get("/products/{product_id}", response_model=AdminProductOut)

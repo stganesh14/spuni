@@ -5,6 +5,7 @@ import { API_BASE, API_PREFIX } from './api-base';
 import {
   Banner,
   BannerIn,
+  BulkProductUploadResult,
   Category,
   CategoryIn,
   ContactMessage,
@@ -80,6 +81,14 @@ export class AdminApi {
   deleteCategory = (id: number) => this.del(`/categories/${id}`);
 
   products = (p: Params) => this.get<Page<Product>>('/products', p);
+  bulkProductTemplate = () =>
+    this.http.get(`${this.root}/products/bulk-template`, { responseType: 'blob' });
+  bulkUploadProducts = (workbook: File, images: File[]) => {
+    const form = new FormData();
+    form.append('workbook', workbook, workbook.name);
+    for (const image of images) form.append('images', image, image.name);
+    return this.http.post<BulkProductUploadResult>(`${this.root}/products/bulk-upload`, form);
+  };
   product = (id: number) => this.get<Product>(`/products/${id}`);
   createProduct = (b: ProductIn) => this.post<Product>('/products', b);
   updateProduct = (id: number, b: ProductIn) => this.put<Product>(`/products/${id}`, b);

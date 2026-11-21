@@ -430,6 +430,13 @@ img {
     padding-left: 18px;
   }
 }
+.form-success {
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  margin-bottom: 14px;
+}
 .sticky-actions {
   position: sticky;
   bottom: 0;

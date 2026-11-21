@@ -23,7 +23,10 @@ export function toApiError(err: unknown): ApiError {
     const fields = Array.isArray(details)
       ? (details as unknown[])
           .filter((d): d is FieldError => !!d && typeof d === 'object' && 'message' in d)
-          .map((d) => ({ field: String(d.field ?? ''), message: cleanMessage(String(d.message)) }))
+          .map((d) => ({
+            field: String(d.field ?? ('row' in d ? `Row ${d.row}` : '')),
+            message: cleanMessage(String(d.message)),
+          }))
       : [];
     let message = env?.message;
     if (!message) {

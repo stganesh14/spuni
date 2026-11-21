@@ -30,6 +30,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/products/product-form').then((m) => m.ProductFormPage),
       },
       {
+        path: 'products/bulk-upload',
+        title: 'Bulk product upload · SPUNI Admin',
+        loadComponent: () => import('./pages/products/bulk-upload').then((m) => m.BulkProductUploadPage),
+      },
+      {
         path: 'products/:id',
         title: 'Edit product · SPUNI Admin',
         loadComponent: () => import('./pages/products/product-form').then((m) => m.ProductFormPage),
