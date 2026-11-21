@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { Api } from '../../core/api/api.service';
 import { HomeData } from '../../core/api/models';
@@ -13,6 +13,7 @@ import { Hero } from '../../features/components/hero/hero';
 import { VintageFilm } from '../../features/components/vintage-film/vintage-film';
 import { WhatsNew } from '../../features/components/whats-new/whats-new';
 import { Marquee } from '../../shared/components/marquee/marquee';
+import { StoreService } from '../../core/cart/store.service';
 
 @Component({
   selector: 'app-home-page',
@@ -31,7 +32,7 @@ import { Marquee } from '../../shared/components/marquee/marquee';
     <app-vintage-film />
     <app-gift-teaser />
     <app-customization />
-    <app-marquee [items]="craft" [reverse]="true" />
+    <app-marquee [items]="craft()" [reverse]="true" />
     <app-ethical-leather />
   `,
   styles: `
@@ -43,6 +44,7 @@ import { Marquee } from '../../shared/components/marquee/marquee';
 export class HomePage {
   private readonly api = inject(Api);
   private readonly motion = inject(MotionService);
+  protected readonly store = inject(StoreService);
 
   protected readonly data = signal<HomeData | null>(null);
   protected readonly failed = signal(false);
@@ -53,10 +55,17 @@ export class HomePage {
     'Earn Spuni Cash on eligible orders',
     'New drops every month',
   ];
-  protected readonly craft = ['Cut', 'Stitched', 'Burnished', 'Carried', 'Loved', 'Passed on'];
+  protected readonly craft = computed(() => {
+    const items = (this.store.info()?.customization_marquee_text ?? '')
+      .split(/\r?\n/)
+      .map((text) => text.trim())
+      .filter((text) => text.length > 0);
+    return items.length ? items : ['Cut', 'Stitched', 'Burnished', 'Carried', 'Loved', 'Passed on'];
+  });
 
   constructor() {
     inject(SeoService).set({ path: '/' });
+    this.store.loadInfo().subscribe();
     this.api.home().subscribe({
       next: (d) => {
         this.data.set(d);

@@ -86,6 +86,9 @@ export class SettingsPage {
         validators: [Validators.required, Validators.maxLength(254), Validators.pattern(PATTERNS.email)],
       }),
       support_phone: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(PATTERNS.phone)] }),
+      header_text_1: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
+      header_text_2: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
+      customization_marquee_text: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
     },
     { validators: [giftRange, walletTierRanges] },
   );
@@ -125,6 +128,9 @@ export class SettingsPage {
       gift_card_validity_days: String(s.gift_card_validity_days),
       support_email: s.support_email,
       support_phone: s.support_phone,
+      header_text_1: s.header_text_1,
+      header_text_2: s.header_text_2,
+      customization_marquee_text: s.customization_marquee_text,
     });
     this.updatedAt.set(s.updated_at ?? null);
   }
@@ -156,6 +162,9 @@ export class SettingsPage {
       gift_card_validity_days: Number(v.gift_card_validity_days),
       support_email: v.support_email.trim().toLowerCase(),
       support_phone: v.support_phone.replace(/[\s\-().]/g, ''),
+      header_text_1: v.header_text_1.trim(),
+      header_text_2: v.header_text_2.trim(),
+      customization_marquee_text: v.customization_marquee_text.trim(),
     };
     this.saving.set(true);
     try {

@@ -68,6 +68,28 @@ export class Header {
     this.store.info()?.wallet_tier_4_percent ?? 5,
   ));
 
+  private readonly textItems = (value: string | null | undefined): string[] =>
+    (value ?? '')
+      .split(/\r?\n/)
+      .map((text) => text.trim())
+      .filter((text) => text.length > 0);
+
+  protected readonly headerText1 = computed(() => {
+    const items = this.textItems(this.store.info()?.header_text_1);
+    return items.length ? items : [
+      'Free shipping over ₹3000',
+      'Earn up to 5% as Spuni Cash',
+    ];
+  });
+
+  protected readonly headerText2 = computed(() => {
+    const items = this.textItems(this.store.info()?.header_text_2);
+    return items.length ? items : [
+      'Handcrafted vegan leather, Chennai',
+      'Free monogramming on customisable pieces',
+    ];
+  });
+
   /** Product lists for the Men / Women panels, grouped by category. */
   protected readonly genderMenu = computed(() => {
     const panel = this.panel();

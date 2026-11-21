@@ -16,17 +16,19 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   `,
   styles: `
     :host { display: block; overflow: hidden; }
-    .mq { display: flex; width: max-content; padding: 18px 0; border-block: 1px solid var(--line-strong);
+    .mq { display: flex; width: max-content; padding: 12px 0; border-block: 1px solid var(--line-strong);
       background: var(--cream); color: var(--brown); }
     .mq.dark { background: var(--brown); color: var(--cream); border-color: transparent; }
-    .track { display: flex; align-items: center; gap: 28px; padding-right: 28px;
+    .track { display: flex; align-items: center; gap: 18px; padding-right: 18px;
       animation: scroll var(--speed, 30s) linear infinite; }
     .reverse .track { animation-direction: reverse; }
     .mq:hover .track { animation-play-state: paused; }
     .item { font-family: var(--font-display); font-style: italic; font-size: clamp(1.4rem, 3vw, 2.4rem);
       white-space: nowrap; }
-    .item:nth-child(4n+1) { font-style: normal; font-family: var(--font-mono); font-size: clamp(.8rem,1.4vw,1rem);
-      letter-spacing: .24em; text-transform: uppercase; }
+    .item:nth-child(4n+1) { font-style: normal; font-family: var(--font-mono); font-size: clamp(.82rem,1.35vw,1.02rem);
+      font-weight: 600; letter-spacing: .12em; }
+    .item:nth-child(4n+3) { color: var(--burgundy-bright); }
+    .dark .item:nth-child(4n+3) { color: var(--gold-light); }
     .star { color: var(--burgundy); font-size: 1.1rem; }
     .dark .star { color: var(--gold-light); }
     @keyframes scroll { to { transform: translateX(-100%); } }

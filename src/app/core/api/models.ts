@@ -157,6 +157,9 @@ export interface StoreInfo {
   wallet_tier_2_percent: number;
   wallet_tier_3_percent: number;
   wallet_tier_4_percent: number;
+  header_text_1: string;
+  header_text_2: string;
+  customization_marquee_text: string;
   payment_mode: 'mock' | 'razorpay';
   razorpay_key_id: string | null;
 }

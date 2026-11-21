@@ -65,6 +65,9 @@ async def store_info(db: DB) -> StoreInfoOut:
         wallet_tier_3_percent=store.wallet_tier_3_percent,
         wallet_tier_4_percent=store.wallet_tier_4_percent, payment_mode=settings.payment_mode,
         razorpay_key_id=settings.razorpay_key_id or None,
+        header_text_1=store.header_text_1,
+        header_text_2=store.header_text_2,
+        customization_marquee_text=store.customization_marquee_text,
     )
 
 

@@ -56,5 +56,8 @@ class StoreInfoOut(OutputModel):
     wallet_tier_2_percent: int
     wallet_tier_3_percent: int
     wallet_tier_4_percent: int
+    header_text_1: str
+    header_text_2: str
+    customization_marquee_text: str
     payment_mode: str
     razorpay_key_id: str | None

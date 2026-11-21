@@ -355,6 +355,21 @@ class StoreSettings(Base):
     support_phone: Mapped[str] = mapped_column(
         String(20), nullable=False, default="+919176969556", server_default="+919176969556"
     )
+    header_text_1: Mapped[str] = mapped_column(
+        Text, nullable=False,
+        default="Free shipping over ₹3000\nEarn up to 5% as Spuni Cash",
+        server_default="Free shipping over ₹3000\nEarn up to 5% as Spuni Cash"
+    )
+    header_text_2: Mapped[str] = mapped_column(
+        Text, nullable=False,
+        default="Handcrafted vegan leather, Chennai\nFree monogramming on customisable pieces",
+        server_default="Handcrafted vegan leather, Chennai\nFree monogramming on customisable pieces"
+    )
+    customization_marquee_text: Mapped[str] = mapped_column(
+        Text, nullable=False,
+        default="Cut\nStitched\nBurnished\nCarried\nLoved\nPassed on",
+        server_default="Cut\nStitched\nBurnished\nCarried\nLoved\nPassed on"
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

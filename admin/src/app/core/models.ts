@@ -463,6 +463,9 @@ export interface StoreSettings {
   gift_card_validity_days: number;
   support_email: string;
   support_phone: string;
+  header_text_1: string;
+  header_text_2: string;
+  customization_marquee_text: string;
   updated_at?: string;
 }
 

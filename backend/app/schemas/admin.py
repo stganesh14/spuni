@@ -322,6 +322,9 @@ class StoreSettingsIn(InputModel):
     gift_card_validity_days: int = Field(ge=30, le=1825)
     support_email: Annotated[str, Field(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
     support_phone: Annotated[str, Field(pattern=r"^\+?[0-9]{10,15}$")]
+    header_text_1: SafeText(2, 4000)
+    header_text_2: SafeText(2, 4000)
+    customization_marquee_text: SafeText(2, 4000)
 
     @model_validator(mode="after")
     def _ranges(self) -> "StoreSettingsIn":
