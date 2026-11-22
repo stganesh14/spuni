@@ -35,6 +35,9 @@ export const routes: Routes = [
   },
   { path: 'wishlist', loadComponent: () => import('./pages/wishlist/wishlist').then((m) => m.WishlistPage), title: 'Wishlist · SPUNI' },
   { path: 'whats-new', loadComponent: () => import('./pages/whats-new/whats-new').then((m) => m.WhatsNewPage), title: "What's New · SPUNI" },
+  { path: 'about', loadComponent: () => import('./pages/about/about').then((m) => m.AboutPage), title: 'Our Story · SPUNI' },
+  { path: 'blog', loadComponent: () => import('./pages/blog/blog-list').then((m) => m.BlogListPage), title: 'Journal · SPUNI' },
+  { path: 'blog/:slug', loadComponent: () => import('./pages/blog/blog-detail').then((m) => m.BlogDetailPage), title: 'Journal · SPUNI' },
   { path: 'customization', loadComponent: () => import('./pages/customization/customization').then((m) => m.CustomizationPage), title: 'Customise · SPUNI' },
   { path: 'gift', loadComponent: () => import('./pages/gift/gift').then((m) => m.GiftPage), title: 'Gift a loved one · SPUNI' },
   { path: 'contact', loadComponent: () => import('./pages/contact/contact').then((m) => m.ContactPage), title: 'Contact · SPUNI' },
@@ -44,7 +47,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/info/info').then((m) => m.InfoPage),
     canMatch: [
       (_route: unknown, segments: { path: string }[]) =>
-        ['about', 'privacy', 'terms', 'shipping', 'returns', 'faq'].includes(segments[0]?.path ?? ''),
+        ['privacy', 'terms', 'shipping', 'returns', 'faq'].includes(segments[0]?.path ?? ''),
     ],
   },
   { path: '**', loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFoundPage), title: 'Page not found · SPUNI' },

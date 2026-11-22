@@ -264,3 +264,23 @@ class Banner(IdMixin, TimestampMixin, Base):
     link_url: Mapped[str | None] = mapped_column(String(300))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+
+
+class BlogPost(IdMixin, TimestampMixin, Base):
+    """Editorial content managed by admins and shown to storefront visitors."""
+
+    __tablename__ = "blog_posts"
+    __table_args__ = (
+        CheckConstraint(SLUG_CHECK, name="slug_format"),
+        CheckConstraint("length(trim(title)) >= 2", name="title_len"),
+        CheckConstraint("status IN ('draft', 'published')", name="status_valid"),
+        Index("ix_blog_posts_status_published_at", "status", "published_at"),
+    )
+
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    slug: Mapped[str] = mapped_column(String(140), unique=True, nullable=False)
+    excerpt: Mapped[str | None] = mapped_column(String(320))
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft", server_default="draft")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

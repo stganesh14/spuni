@@ -6,6 +6,7 @@ from pydantic import Field, field_validator, model_validator
 
 from app.models.enums import CustomizationStatus, Gender, LaunchStatus, OrderStatus
 from app.schemas.common import (
+    Email,
     InputModel,
     OutputModel,
     Paise,
@@ -319,6 +320,20 @@ class AdminCustomerRow(OutputModel):
 class CustomerUpdateIn(InputModel):
     is_active: bool | None = None
     role: Literal["customer", "admin"] | None = None
+
+
+class AdminUserIn(InputModel):
+    email: Email
+
+
+class AdminUserOut(OutputModel):
+    id: int
+    email: str
+    full_name: str | None
+    role: Literal["admin"]
+    is_active: bool
+    created_at: datetime
+    last_login_at: datetime | None
 
 
 class WalletAdjustIn(InputModel):

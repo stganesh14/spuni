@@ -49,6 +49,11 @@
     position: sticky;
     top: calc(var(--header-h) + 16px);
   }
+
+  @include up($bp-lg) {
+    max-width: 470px;
+    justify-self: center;
+  }
 }
 
 .main {

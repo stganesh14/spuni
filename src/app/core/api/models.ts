@@ -151,6 +151,18 @@ export interface Launch {
   subscriber_count: number;
 }
 
+export interface BlogPostCard {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  image_url: string | null;
+  published_at: string;
+}
+
+export interface BlogPost extends BlogPostCard {
+  content: string;
+}
+
 export interface HomeData {
   banners: Banner[];
   launches: Launch[];

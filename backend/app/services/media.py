@@ -78,7 +78,7 @@ async def save_image(upload: UploadFile, folder: str, db: AsyncSession) -> Store
 
 
 async def store_image_bytes(data: bytes, folder: str, original_name: str, db: AsyncSession) -> StoredFile:
-    if folder not in {"products", "categories", "launches", "banners", "customizations", "homepage"}:
+    if folder not in {"products", "categories", "launches", "banners", "blogs", "customizations", "homepage"}:
         raise ValueError("Unknown media folder")
     if len(data) > settings.max_upload_mb * 1024 * 1024:
         raise AppError(f"File is too large. Maximum size is {settings.max_upload_mb} MB.", code="file_too_large")

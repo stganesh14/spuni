@@ -192,6 +192,23 @@ export interface LaunchNotifyOut {
   message: string;
 }
 
+export type BlogStatus = 'draft' | 'published';
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  image_url: string | null;
+  status: BlogStatus;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BlogPostIn = Pick<BlogPost, 'title' | 'slug' | 'excerpt' | 'content' | 'image_url' | 'status'>;
+
 export interface Banner {
   id: number;
   title_one: string;
@@ -339,6 +356,20 @@ export interface CustomerRow {
   wallet_cash_value_paise: number;
   last_login_at: string | null;
   created_at: string;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  full_name: string | null;
+  role: 'admin';
+  is_active: boolean;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+export interface AdminUserIn {
+  email: string;
 }
 
 export interface WalletTxn {
@@ -523,4 +554,4 @@ export interface Dashboard {
   status_breakdown: Record<string, number>;
 }
 
-export type MediaFolder = 'products' | 'categories' | 'launches' | 'banners' | 'homepage';
+export type MediaFolder = 'products' | 'categories' | 'launches' | 'banners' | 'blogs' | 'homepage';

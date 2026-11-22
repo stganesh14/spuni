@@ -20,6 +20,7 @@ FastAPI + PostgreSQL backend for the SPUNI storefront (`../`) and admin app (`..
   - Emails go through a transactional outbox with retries: the row is written in the same transaction as the event.
   - Events covered: OTP, order placed, payment received, shipped, delivered, cancelled, wallet credited, gift card, launch notification, customisation updates and contact replies.
   - Every email has a one-click unsubscribe where it applies.
+- **Blog:** admins create drafts and publish rich-text stories; public endpoints expose only published posts, and blog HTML is sanitized before storage.
 - **Hardening:** strict Pydantic schemas (`extra="forbid"`, length and pattern limits), security headers, trusted hosts, CORS allow-list, rate limits, upload type sniffing and re-encoding (images become WebP; PDFs are checked by magic bytes), and request IDs.
 
 ## Run locally
@@ -135,12 +136,12 @@ The admin app's README (`../admin/README.md`) has its own nginx block.
 
 ```
 app/
-  api/routes/        auth, catalog, shop (cart quote, orders, payments), account, engagement, admin/*
+  api/routes/        auth, catalog, blog, shop (cart quote, orders, payments), account, engagement, admin/*
   core/              config, security (JWT, OTP HMAC), errors, rate limit, middleware
   db/                database engine and session
-  models/            SQLAlchemy models (with CHECK and unique constraints)
+  models/            SQLAlchemy models (with CHECK and unique constraints), including blog posts
   schemas/           Pydantic request and response models
-  services/          business logic: orders, payments, wallet, email outbox, media, launches
+  services/          business logic: orders, payments, wallet, email outbox, media, launches, blog content
   templates/email/   HTML email templates
 alembic/             migrations (0001 initial schema with all constraints)
 scripts/seed.py      demo catalogue and admin user

@@ -1,0 +1,29 @@
+.add-admin {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding: 22px;
+  margin-bottom: 24px;
+
+  button {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+}
+
+.actions-heading,
+.actions-cell {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .add-admin {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .add-admin button {
+    width: 100%;
+  }
+}

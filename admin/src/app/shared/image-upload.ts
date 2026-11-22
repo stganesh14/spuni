@@ -8,7 +8,7 @@ import { MediaFolder } from '../core/models';
 import { ToastService } from '../core/ui.service';
 import { MediaPipe } from './pipes';
 
-const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,image/gif';
+const ACCEPT = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
 let seq = 0;
 
 /** Single image field (form control holding the uploaded API media URL or null). */

@@ -57,6 +57,7 @@ export class Shell {
         { path: '/products/bulk-upload', label: 'Bulk product upload', icon: '⇧' },
         { path: '/categories', label: 'Categories', icon: '▦' },
         { path: '/launches', label: "What's new", icon: '✺' },
+        { path: '/blogs', label: 'Blog', icon: '✎' },
         { path: '/banners', label: 'Hero banners', icon: '▭' },
       ],
     },
@@ -66,6 +67,7 @@ export class Shell {
         { path: '/messages', label: 'Messages', icon: '✉' },
         { path: '/emails', label: 'Email log', icon: '⇄' },
         { path: '/settings', label: 'Settings', icon: '⚙' },
+        { path: '/admin-users', label: 'Admin users', icon: '♙' },
       ],
     },
   ];

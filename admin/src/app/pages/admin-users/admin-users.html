@@ -1,0 +1,78 @@
+<app-page-header
+  title="Admin users"
+  eyebrow="Store · Access"
+  subtitle="Manage who can access the admin panel."
+/>
+
+<form class="card add-admin" [formGroup]="form" (ngSubmit)="add()" novalidate>
+  <app-field
+    label="Registered user email"
+    for="admin-user-email"
+    hint="The user must already have a customer account."
+    [required]="true"
+    [control]="form.controls.email"
+  >
+    <input
+      id="admin-user-email"
+      class="input"
+      type="email"
+      formControlName="email"
+      maxlength="254"
+      autocomplete="email"
+      placeholder="name@example.com"
+    />
+  </app-field>
+  <button type="submit" class="btn btn-primary" [disabled]="adding()">
+    {{ adding() ? 'Adding…' : 'Add admin' }}
+  </button>
+</form>
+
+<section class="card card-flush">
+  <app-state
+    [loading]="loading() && !users()"
+    [error]="error()"
+    [empty]="!!users() && users()!.length === 0"
+    emptyTitle="No admin users found"
+    (retry)="load()"
+  />
+  @if (users(); as admins) {
+    @if (admins.length && !error()) {
+      <div class="table-wrap">
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <th scope="col">Admin</th>
+              <th scope="col">Status</th>
+              <th scope="col">Added</th>
+              <th scope="col" class="actions-heading">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of admins; track user.id) {
+              <tr>
+                <td class="primary-cell" data-label="Admin">
+                  {{ user.full_name || user.email }}
+                  @if (user.full_name) {
+                    <div class="muted small">{{ user.email }}</div>
+                  }
+                </td>
+                <td data-label="Status"><app-status [value]="user.is_active ? 'active' : 'inactive'" /></td>
+                <td class="nowrap" data-label="Added">{{ user.created_at | dt }}</td>
+                <td class="actions-cell" data-label="Actions">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm danger-text"
+                    [disabled]="deletingId() !== null"
+                    (click)="remove(user)"
+                  >
+                    {{ deletingId() === user.id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>

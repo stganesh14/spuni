@@ -46,7 +46,8 @@
            [attr.aria-expanded]="panel() === 'women'" (keydown.arrowDown)="togglePanel('women', $event)">
           Women <i class="bi bi-chevron-down"></i></a>
       </div>
-      <a routerLink="/whats-new" routerLinkActive="active" class="nav-link">What's New <sup class="dot"></sup></a>
+      <a routerLink="/about" routerLinkActive="active" class="nav-link">About</a>
+      <a routerLink="/blog" routerLinkActive="active" class="nav-link">Blog</a>
       <a routerLink="/gift" routerLinkActive="active" class="nav-link">Gifting</a>
       <a routerLink="/customization" routerLinkActive="active" class="nav-link">Customise</a>
     </nav>
@@ -216,7 +217,8 @@
       <a class="m-item" routerLink="/shop">Shop all</a>
       <a class="m-item" routerLink="/shop" [queryParams]="{ gender: 'men' }">For him</a>
       <a class="m-item" routerLink="/shop" [queryParams]="{ gender: 'women' }">For her</a>
-      <a class="m-item" routerLink="/whats-new">What's New</a>
+      <a class="m-item" routerLink="/about">About</a>
+      <a class="m-item" routerLink="/blog">Blog</a>
       <a class="m-item" routerLink="/gift">Gift a loved one</a>
       <a class="m-item" routerLink="/customization">Customise</a>
     </nav>

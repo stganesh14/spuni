@@ -82,6 +82,7 @@ On the API side, set `ADMIN_URL=https://admin.spuni.in`, `COOKIE_SECURE=true`, a
 
 ## How it works
 
+- **Admin access.** Use **Store → Admin users** to grant admin access to an existing customer account or permanently remove an unreferenced admin account. The primary protected admin and accounts with orders, customization requests or purchased gift cards cannot be deleted.
 - **Auth.** Sign-in is a passwordless email code: `otp/request` → `otp/verify`. The access token is kept **in memory only** (a signal in `AuthService`) and never in localStorage. On app start the route guard calls `POST /admin/auth/refresh`, with `X-Requested-With: spuni` and credentials, to restore the session from the httpOnly cookie. `authInterceptor` adds the bearer token. When a request gets a 401, the interceptor refreshes the token **once**, sharing a single in-flight refresh across concurrent requests, and retries the request. If the refresh fails, it redirects to `/login?returnUrl=…`.
 - **Errors.** Every API error has the shape `{error: {code, message, details}}`. `toApiError()` shows `message`. For 422 responses, `applyServerErrors()` maps `details[].field` onto the matching form controls.
 - **Money.** The API uses integer paise everywhere. Admins type rupees (`1499.50`), and `rupeesToPaise()` converts them before sending. Amounts are displayed with Indian digit grouping (`₹1,49,999.50`) by the `money` pipe.
@@ -96,7 +97,7 @@ src/app/
   shared/      ui (status badge, field, loading/empty/error state, pager, page header), modal + confirm host,
                toast host, image-upload (single + product gallery manager), bar-chart (SVG), pipes
   layout/      shell (sidebar, top bar, mobile drawer)
-  pages/       login, dashboard, products (list + form), categories, launches, banners, orders (list + detail),
+  pages/       login, dashboard, products (list + form), categories, launches, blog editor, banners, orders (list + detail),
                customers (list + detail), customizations (list + detail), gift-cards, messages, emails,
                settings, not-found
 ```

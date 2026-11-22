@@ -1,0 +1,88 @@
+<app-page-header
+  title="Blog"
+  eyebrow="Content · Editorial"
+  subtitle="Write, edit and publish stories for the SPUNI storefront."
+>
+  <button type="button" class="btn btn-primary" (click)="open('new')">+ New post</button>
+</app-page-header>
+
+<app-state
+  [loading]="loading() && !items()"
+  [error]="error()"
+  [empty]="!!items() && items()!.length === 0"
+  emptyTitle="No blog posts yet"
+  emptyText="Create a draft, then publish it when it is ready."
+  (retry)="load()"
+/>
+
+@if (items(); as posts) {
+  @if (posts.length && !error()) {
+    <div class="blog-grid">
+      @for (post of posts; track post.id) {
+        <article class="card blog-card">
+          @if (post.image_url) {
+            <img class="blog-cover" [src]="post.image_url | media" [alt]="post.title" loading="lazy" />
+          } @else {
+            <div class="blog-cover placeholder" aria-hidden="true">SPUNI</div>
+          }
+          <div class="blog-body">
+            <div class="blog-status">
+              <app-status [value]="post.status" />
+              @if (post.published_at) {
+                <span class="muted small">{{ post.published_at | dt: true }}</span>
+              }
+            </div>
+            <h2>{{ post.title }}</h2>
+            @if (post.excerpt) {
+              <p class="muted">{{ post.excerpt }}</p>
+            }
+            <span class="slug">/blog/{{ post.slug }}</span>
+          </div>
+          <footer class="blog-actions">
+            <button type="button" class="btn btn-ghost btn-sm" (click)="open(post)">Edit</button>
+            <button type="button" class="btn btn-ghost btn-sm danger-text" (click)="remove(post)">Delete</button>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+}
+
+<app-modal [open]="!!editing()" [title]="editTitle()" [wide]="true" (closed)="editing.set(null)">
+  @if (editing()) {
+    <form id="blog-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <p class="form-alert" role="alert">{{ formError() }}</p>
+      }
+      <div class="form-grid">
+        <app-field class="span-2" label="Title" for="blog-title" [required]="true" [control]="form.controls.title">
+          <input id="blog-title" class="input" formControlName="title" maxlength="160" />
+        </app-field>
+        <app-field class="span-2" label="Slug" for="blog-slug" [required]="true" [control]="form.controls.slug">
+          <input id="blog-slug" class="input mono" formControlName="slug" maxlength="140" (input)="onSlugInput()" />
+        </app-field>
+        <app-field class="span-2" label="Excerpt" for="blog-excerpt" hint="A short introduction shown on the blog listing. Up to 320 characters.">
+          <textarea id="blog-excerpt" class="textarea" rows="3" formControlName="excerpt" maxlength="320"></textarea>
+        </app-field>
+        <app-field class="span-2" label="Content" for="blog-content" [required]="true" hint="Use the toolbar to format headings, emphasis, quotes and lists.">
+          <app-rich-text-editor id="blog-content" formControlName="content" />
+        </app-field>
+        <app-field label="Cover image" for="blog-image">
+          <app-image-upload id="blog-image" folder="blogs" aspect="wide" formControlName="image_url" />
+        </app-field>
+        <app-field label="Status" for="blog-status" [control]="form.controls.status">
+          <select id="blog-status" class="select" formControlName="status">
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+        </app-field>
+      </div>
+    </form>
+  }
+  <div modal-actions>
+    <button type="button" class="btn btn-ghost" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="blog-form" class="btn btn-primary" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : form.controls.status.value === 'published' ? 'Publish post' : 'Save draft' }}
+    </button>
+  </div>
+</app-modal>

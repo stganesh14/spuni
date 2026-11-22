@@ -7,6 +7,8 @@ import { NO_AUTH_RETRY, SILENT } from './http-context';
 import {
   Address,
   AddressInput,
+  BlogPost,
+  BlogPostCard,
   CartLine,
   Category,
   CheckoutRequest,
@@ -130,6 +132,17 @@ export class Api {
 
   launches(): Observable<Launch[]> {
     return this.http.get<Launch[]>(this.url('/launches'));
+  }
+
+  blogs(page = 1): Observable<Page<BlogPostCard>> {
+    return this.http.get<Page<BlogPostCard>>(this.url('/blogs'), {
+      params: { page, page_size: 12 },
+      context: this.silent(),
+    });
+  }
+
+  blog(slug: string): Observable<BlogPost> {
+    return this.http.get<BlogPost>(this.url(`/blogs/${encodeURIComponent(slug)}`));
   }
 
   notifyLaunch(slug: string, email: string | null): Observable<{ subscribed: boolean; message: string }> {

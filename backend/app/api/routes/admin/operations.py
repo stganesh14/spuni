@@ -4,8 +4,8 @@ messages, email log and store settings."""
 from datetime import timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import Date, case, cast, func, or_, select
+from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import Date, case, cast, delete, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB, Admin, current_admin
@@ -19,6 +19,7 @@ from app.models import (
     LaunchSubscription,
     Order,
     OrderItem,
+    OtpCode,
     Product,
     User,
     Wallet,
@@ -40,6 +41,8 @@ from app.schemas.admin import (
     AdminNoteIn,
     AdminOrderOut,
     AdminOrderRow,
+    AdminUserIn,
+    AdminUserOut,
     ContactMessageOut,
     ContactStatusIn,
     CustomerUpdateIn,
@@ -65,11 +68,81 @@ router = APIRouter(prefix="/admin", tags=["admin-operations"], dependencies=[Dep
 
 PAID_STATUSES = [OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED,
                  OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED]
+PROTECTED_ADMIN_EMAIL = "stganesh1999@gmail.com"
 
 
 @router.get("/me", response_model=UserOut)
 async def admin_me(admin: Admin) -> UserOut:
     return UserOut.model_validate(admin)
+
+
+@router.get("/admin-users", response_model=list[AdminUserOut])
+async def list_admin_users(db: DB) -> list[AdminUserOut]:
+    users = (
+        await db.execute(
+            select(User).where(User.role == UserRole.ADMIN).order_by(User.created_at, User.id)
+        )
+    ).scalars().all()
+    return [AdminUserOut.model_validate(user) for user in users]
+
+
+@router.post("/admin-users", response_model=AdminUserOut)
+async def add_admin_user(body: AdminUserIn, db: DB) -> AdminUserOut:
+    user = (
+        await db.execute(select(User).where(User.email == str(body.email)).with_for_update())
+    ).scalar_one_or_none()
+    if user is None:
+        raise NotFound("No account exists for this email. The user must register before admin access can be granted.")
+    if user.role == UserRole.ADMIN:
+        raise Conflict("This user already has admin access.")
+    if not user.is_active:
+        raise Conflict("This account is deactivated. Reactivate it before granting admin access.")
+
+    user.role = UserRole.ADMIN
+    await revoke_all_sessions(db, user.id)
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserOut.model_validate(user)
+
+
+@router.delete("/admin-users/{user_id}", status_code=204)
+async def delete_admin_user(user_id: int, db: DB, admin: Admin) -> Response:
+    user = await db.get(User, user_id)
+    if user is None or user.role != UserRole.ADMIN:
+        raise NotFound("Admin user not found.")
+    if user.email == PROTECTED_ADMIN_EMAIL:
+        raise Conflict("This admin user cannot be deleted.", code="protected_admin")
+    if user.id == admin.id:
+        raise Conflict("You cannot delete your own admin account.", code="self_delete")
+
+    other_active_admins = await db.scalar(
+        select(func.count(User.id)).where(
+            User.role == UserRole.ADMIN,
+            User.is_active.is_(True),
+            User.id != user.id,
+        )
+    )
+    if user.is_active and not other_active_admins:
+        raise Conflict("The last active admin account cannot be deleted.", code="last_admin")
+
+    has_orders = await db.scalar(select(Order.id).where(Order.user_id == user.id).limit(1))
+    has_customizations = await db.scalar(
+        select(CustomizationRequest.id).where(CustomizationRequest.user_id == user.id).limit(1)
+    )
+    has_purchased_gift_cards = await db.scalar(
+        select(GiftCard.id).where(GiftCard.purchaser_id == user.id).limit(1)
+    )
+    if has_orders or has_customizations or has_purchased_gift_cards:
+        raise Conflict(
+            "This admin account has store records and cannot be permanently deleted. "
+            "Remove its admin access instead.",
+            code="admin_has_records",
+        )
+
+    await db.execute(delete(OtpCode).where(OtpCode.email == user.email))
+    await db.delete(user)
+    await db.commit()
+    return Response(status_code=204)
 
 
 # ---------------------------------------------------------------- dashboard
@@ -301,6 +374,8 @@ async def update_customer(user_id: int, body: CustomerUpdateIn, db: DB, admin: A
     user = await db.get(User, user_id)
     if user is None:
         raise NotFound("Customer not found.")
+    if user.email == PROTECTED_ADMIN_EMAIL and (body.is_active is False or body.role == UserRole.CUSTOMER):
+        raise Conflict("This admin user cannot be disabled or demoted.", code="protected_admin")
     if user.id == admin.id and (body.is_active is False or body.role == UserRole.CUSTOMER):
         raise Conflict("You cannot disable or demote your own account.", code="self_lockout")
     if body.is_active is not None:

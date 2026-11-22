@@ -4,19 +4,20 @@ import { RouterLink } from '@angular/router';
 import { ProductCard as Product } from '../../../core/api/models';
 import { CartService } from '../../../core/cart/cart.service';
 import { WishlistService } from '../../../core/cart/wishlist.service';
+import { ZoomService } from '../../../core/ui/zoom.service';
 import { TiltDirective } from '../../directives/tilt.directive';
-import { ZoomableDirective } from '../../directives/zoomable.directive';
 import { InrPipe } from '../../pipes/inr.pipe';
 
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, InrPipe, ZoomableDirective, TiltDirective],
+  imports: [RouterLink, InrPipe, TiltDirective],
   templateUrl: './product-card.html',
   styleUrl: './product-card.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductCardComponent {
   private readonly cart = inject(CartService);
+  private readonly zoom = inject(ZoomService);
   protected readonly wishlist = inject(WishlistService);
 
   readonly product = input.required<Product>();
@@ -47,5 +48,18 @@ export class ProductCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.wishlist.toggle(this.product());
+  }
+
+  openPreview(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.zoom.open({
+      images: this.gallery(),
+      index: 0,
+      title: this.product().name,
+      link: this.link(),
+      linkLabel: 'View product',
+      origin: (event.currentTarget as HTMLElement).getBoundingClientRect(),
+    });
   }
 }

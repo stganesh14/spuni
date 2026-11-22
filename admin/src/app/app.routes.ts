@@ -50,6 +50,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/launches/launches').then((m) => m.LaunchesPage),
       },
       {
+        path: 'blogs',
+        title: 'Blog · SPUNI Admin',
+        loadComponent: () => import('./pages/blogs/blogs').then((m) => m.BlogsPage),
+      },
+      {
         path: 'banners',
         title: 'Hero banners · SPUNI Admin',
         loadComponent: () => import('./pages/banners/banners').then((m) => m.BannersPage),
@@ -104,6 +109,11 @@ export const routes: Routes = [
         path: 'settings',
         title: 'Settings · SPUNI Admin',
         loadComponent: () => import('./pages/settings/settings').then((m) => m.SettingsPage),
+      },
+      {
+        path: 'admin-users',
+        title: 'Admin users · SPUNI Admin',
+        loadComponent: () => import('./pages/admin-users/admin-users').then((m) => m.AdminUsersPage),
       },
       {
         path: '**',

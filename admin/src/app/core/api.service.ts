@@ -5,6 +5,10 @@ import { API_BASE, API_PREFIX } from './api-base';
 import {
   Banner,
   BannerIn,
+  AdminUser,
+  AdminUserIn,
+  BlogPost,
+  BlogPostIn,
   BulkProductUploadResult,
   Category,
   CategoryIn,
@@ -67,6 +71,9 @@ export class AdminApi {
 
   me = () => this.get<UserOut>('/me');
   dashboard = () => this.get<Dashboard>('/dashboard');
+  adminUsers = () => this.get<AdminUser[]>('/admin-users');
+  addAdminUser = (b: AdminUserIn) => this.post<AdminUser>('/admin-users', b);
+  deleteAdminUser = (id: number) => this.del(`/admin-users/${id}`);
 
   upload(folder: MediaFolder, file: File): Observable<{ url: string; size_bytes: number }> {
     const form = new FormData();
@@ -107,6 +114,11 @@ export class AdminApi {
   launchSubscribers = (id: number) => this.get<LaunchSubscriber[]>(`/launches/${id}/subscribers`);
   notifyLaunch = (id: number, body: { message: string | null; mark_launched: boolean }) =>
     this.post<LaunchNotifyOut>(`/launches/${id}/notify`, body);
+
+  blogs = () => this.get<BlogPost[]>('/blogs');
+  createBlog = (b: BlogPostIn) => this.post<BlogPost>('/blogs', b);
+  updateBlog = (id: number, b: BlogPostIn) => this.put<BlogPost>(`/blogs/${id}`, b);
+  deleteBlog = (id: number) => this.del(`/blogs/${id}`);
 
   // operations
   orders = (p: Params) => this.get<Page<OrderRow>>('/orders', p);

@@ -43,7 +43,7 @@ from app.services import launches as launch_service
 
 router = APIRouter(prefix="/admin", tags=["admin-catalog"], dependencies=[Depends(current_admin)])
 
-MediaFolder = Literal["products", "categories", "launches", "banners", "homepage"]
+MediaFolder = Literal["products", "categories", "launches", "banners", "blogs", "homepage"]
 
 
 # -------------------------------------------------------------------- media

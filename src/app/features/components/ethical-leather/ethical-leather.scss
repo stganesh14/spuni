@@ -597,6 +597,19 @@
   color: var(--spuni-muted);
 }
 
+@media (min-width: 993px) {
+  .craft-image-container {
+    max-width: 460px;
+    aspect-ratio: 0.92;
+    justify-self: end;
+  }
+
+  .final-message-image {
+    max-width: 460px;
+    justify-self: start;
+  }
+}
+
 
 /* =========================================
    TABLET
