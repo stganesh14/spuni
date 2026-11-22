@@ -169,6 +169,12 @@ export class ProductPage {
     this.active.set(i);
   }
 
+  protected moveImage(delta: number): void {
+    const count = this.images().length;
+    if (count < 2) return;
+    this.active.update((index) => (index + delta + count) % count);
+  }
+
   openZoom(event: Event, index: number): void {
     const target = event.currentTarget as HTMLElement | null;
     this.zoom.open({

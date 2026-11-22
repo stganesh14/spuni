@@ -103,6 +103,34 @@
   color: var(--muted);
 }
 
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(51, 32, 22, 0.14);
+  border-radius: 50%;
+  background: rgba(247, 239, 227, 0.9);
+  color: var(--brown);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-50%);
+  transition: background 0.25s, color 0.25s, transform 0.25s;
+
+  &.prev { left: 14px; }
+  &.next { right: 14px; }
+
+  @include hover {
+    background: var(--brown);
+    color: var(--cream);
+    transform: translateY(-50%) scale(1.06);
+  }
+
+  @include focus-ring;
+}
+
 .zoom-tip {
   position: absolute;
   right: 14px;

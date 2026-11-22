@@ -33,6 +33,14 @@
             </button>
           }
           @if (!images().length) { <div class="placeholder">SPUNI</div> }
+          @if (images().length > 1) {
+            <button type="button" class="gallery-nav prev" (click)="moveImage(-1)" aria-label="Previous product image">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="gallery-nav next" (click)="moveImage(1)" aria-label="Next product image">
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+          }
           <span class="zoom-tip"><i class="bi bi-zoom-in"></i> Tap to zoom</span>
           @if (discount() > 0) { <span class="badge off">-{{ discount() }}%</span> }
         </div>
