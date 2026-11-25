@@ -17,13 +17,13 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
   about: {
     eyebrow: 'Our story',
     title: 'Made slowly. Carried forever.',
-    lead: 'SPUNI is a small Chennai atelier making vegan leather goods the old way: cut by hand, stitched by hand, finished by hand.',
+    lead: 'SPUNI is a small Chennai atelier making slaughter-free leather goods the old way: cut by hand, stitched by hand, finished by hand.',
     image: '/assets/craftsmanship.jpeg',
     sections: [
       {
-        heading: 'Why vegan leather',
+        heading: 'Why slaughter-free leather',
         body: [
-          'We believe no animal should pay the price for beauty. Our premium vegan leather is chosen for how it feels, how it ages and how long it lasts.',
+          'We believe no animal should pay the price for beauty. Our premium slaughter-free leather is chosen for how it feels, how it ages and how long it lasts.',
           'Every hide is inspected by hand before a single pattern is cut.',
         ],
       },
@@ -103,11 +103,11 @@ export const INFO_PAGES: Record<string, InfoPageContent> = {
       { q: 'Do I need an account to shop?', a: 'No. Browse and fill your bag freely. We only ask you to sign in with your email, using a one-time code, when you check out.' },
       { q: 'What is Spuni Cash?', a: 'Eligible orders earn Spuni Cash based on the order value. You can use it for part of your next order. Gift cards are also added to your wallet as Spuni Cash.' },
       { q: 'I did not receive my login code.', a: 'Check your spam or promotions folder, then use "Send a new code" on the sign-in page. Each new code replaces the previous one.' },
-      { q: 'Is the leather real?', a: 'All SPUNI pieces use premium vegan leather. No animal skin is used in any of our products.' },
+      { q: 'Is the leather real?', a: 'All SPUNI pieces use premium slaughter-free leather. No animal skin is used in any of our products.' },
       { q: 'Can I personalise my order?', a: 'Yes. Pieces marked Customisable can be monogrammed, and you can request fully bespoke designs from the Customise page.' },
       { q: 'How do e-gift cards work?', a: 'Choose an amount, add the recipient and a message, and pay. They receive a secure code by email to redeem as Spuni Cash.' },
       { q: 'Which payment methods do you accept?', a: 'UPI, all major credit and debit cards and net banking, processed securely by Razorpay.' },
-      { q: 'How do I care for vegan leather?', a: 'Wipe with a soft dry cloth, keep away from prolonged sunlight and moisture, and store stuffed lightly in the dust bag.' },
+      { q: 'How do I care for slaughter-free leather?', a: 'Wipe with a soft dry cloth, keep away from prolonged sunlight and moisture, and store stuffed lightly in the dust bag.' },
     ],
   },
   privacy: {

@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
-  { path: '', loadComponent: () => import('./pages/home/home').then((m) => m.HomePage), title: 'SPUNI · Handcrafted Vegan Leather' },
+  { path: '', loadComponent: () => import('./pages/home/home').then((m) => m.HomePage), title: 'SPUNI · Handcrafted Slaughter-Free Leather' },
   { path: 'shop', loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
   { path: 'category/:slug', data: { catalogKind: 'category' }, loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },
   { path: 'subcategory/:slug', data: { catalogKind: 'subcategory' }, loadComponent: () => import('./pages/shop/shop').then((m) => m.ShopPage) },

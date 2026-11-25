@@ -162,7 +162,7 @@ export class ShopPage {
       untracked(() =>
         this.seo.set({
           title: heading,
-          description: cat?.description ?? 'Shop handcrafted vegan leather bags, wallets, belts and travel goods.',
+          description: cat?.description ?? 'Shop handcrafted slaughter-free leather bags, wallets, belts and travel goods.',
           image: cat?.image_url,
           path: this.catalogKind() === 'subcategory' && this.slug()
             ? `/subcategory/${this.slug()}`

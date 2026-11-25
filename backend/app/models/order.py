@@ -367,8 +367,8 @@ class StoreSettings(Base):
     )
     header_text_2: Mapped[str] = mapped_column(
         Text, nullable=False,
-        default="Handcrafted vegan leather, Chennai\nFree monogramming on customisable pieces",
-        server_default="Handcrafted vegan leather, Chennai\nFree monogramming on customisable pieces"
+        default="Handcrafted slaughter-free leather, Chennai\nFree monogramming on customisable pieces",
+        server_default="Handcrafted slaughter-free leather, Chennai\nFree monogramming on customisable pieces"
     )
     customization_marquee_text: Mapped[str] = mapped_column(
         Text, nullable=False,

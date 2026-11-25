@@ -19,7 +19,7 @@ def upgrade() -> None:
         "UPDATE store_settings SET "
         "header_text_1 = 'Handcrafted in Chennai', "
         "header_text_2 = 'Free monogramming' "
-        "WHERE header_text_1 = 'Handcrafted vegan leather, Chennai' "
+        "WHERE header_text_1 = 'Handcrafted slaughter-free leather, Chennai' "
         "AND header_text_2 = 'Free monogramming on customisable pieces'"
     )
     op.alter_column("store_settings", "header_text_1",
@@ -30,6 +30,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.alter_column("store_settings", "header_text_1",
-                    server_default="Handcrafted vegan leather, Chennai")
+                    server_default="Handcrafted slaughter-free leather, Chennai")
     op.alter_column("store_settings", "header_text_2",
                     server_default="Free monogramming on customisable pieces")

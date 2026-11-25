@@ -85,7 +85,7 @@ export class Header {
   protected readonly headerText2 = computed(() => {
     const items = this.textItems(this.store.info()?.header_text_2);
     return items.length ? items : [
-      'Handcrafted vegan leather, Chennai',
+      'Handcrafted slaughter-free leather, Chennai',
       'Free monogramming on customisable pieces',
     ];
   });

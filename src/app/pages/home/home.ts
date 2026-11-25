@@ -50,10 +50,7 @@ export class HomePage {
   protected readonly failed = signal(false);
   protected readonly ticker = [
     'Handcrafted in Chennai',
-    'Vegan leather that ages beautifully',
-    'Free monogramming',
-    'Earn Spuni Cash on eligible orders',
-    'New drops every month',
+    'Slaughter-free leather that ages beautifully',
   ];
   protected readonly craft = computed(() => {
     const items = (this.store.info()?.customization_marquee_text ?? '')

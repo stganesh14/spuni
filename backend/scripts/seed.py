@@ -109,9 +109,9 @@ COLOR_HEX = {
 DESCRIPTIONS = {
     "laptop-bags": "Built for the commute and the boardroom alike, with a padded laptop sleeve, organised "
                    "pockets and hand-finished edges that soften with every day you carry it.",
-    "wallets": "Cut from a single hide of premium vegan leather, hand-stitched with waxed thread and edge "
+    "wallets": "Cut from a single hide of premium slaughter-free leather, hand-stitched with waxed thread and edge "
                "painted in layers so it stays slim, strong and beautiful for years.",
-    "belts": "A full-grain finish vegan leather strap with a solid brass buckle, burnished by hand. "
+    "belts": "A full-grain finish slaughter-free leather strap with a solid brass buckle, burnished by hand. "
              "It wears in, never out.",
     "shoulder-bags": "A structured shoulder bag with a soft interior lining, magnetic closure and enough "
                      "room for every everyday ritual. Designed to age beautifully.",
@@ -235,6 +235,10 @@ async def seed(assets_dir: Path, admin_email: str | None) -> None:
             if existing:
                 existing.category_id = categories[cat].id
                 existing.subcategory_id = subcategories[subcat].id
+                existing.short_description = f"{color} slaughter-free leather, handcrafted in Chennai."
+                existing.description = DESCRIPTIONS[cat]
+                existing.material = "Premium slaughter-free leather"
+                existing.meta_description = f"Shop the SPUNI {name}: {color.lower()} slaughter-free leather, handcrafted in India."
                 if not existing.colors:
                     color_option = ProductColor(
                         name=color, hex_code=COLOR_HEX.get(color, "#000000"), sort_order=0
@@ -247,14 +251,14 @@ async def seed(assets_dir: Path, admin_email: str | None) -> None:
             product = Product(
                 category_id=categories[cat].id, subcategory_id=subcategories[subcat].id,
                 name=name, slug=slug, sku=sku,
-                short_description=f"{color} vegan leather, handcrafted in Chennai.",
+                short_description=f"{color} slaughter-free leather, handcrafted in Chennai.",
                 description=DESCRIPTIONS[cat], price_paise=price * 100,
                 compare_at_price_paise=compare * 100 if compare else None, stock=stock, gender=gender,
-                material="Premium vegan leather", color=color, dimensions=dims, care_instructions=CARE,
+                material="Premium slaughter-free leather", color=color, dimensions=dims, care_instructions=CARE,
                 badge=badge, is_bestseller="bestseller" in flags, is_featured="featured" in flags,
                 is_customizable="customizable" in flags, sort_order=order,
                 meta_title=f"{name} | SPUNI Leathers",
-                meta_description=f"Shop the SPUNI {name}: {color.lower()} vegan leather, handcrafted in India.",
+                meta_description=f"Shop the SPUNI {name}: {color.lower()} slaughter-free leather, handcrafted in India.",
                 images=[],
                 colors=[ProductColor(name=color, hex_code=COLOR_HEX.get(color, "#000000"), sort_order=0)],
             )

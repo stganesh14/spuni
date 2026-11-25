@@ -1,6 +1,6 @@
 # SPUNI
 
-Vintage-style vegan leather store: three apps in one folder.
+Vintage-style slaughter-free leather store: three apps in one folder.
 
 | Folder | What | Stack | Dev URL |
 | --- | --- | --- | --- |

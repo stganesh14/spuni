@@ -4,7 +4,7 @@ import { Meta, Title } from '@angular/platform-browser';
 
 const SITE = 'SPUNI';
 const DEFAULT_DESCRIPTION =
-  'SPUNI crafts timeless vegan leather bags, wallets, belts and travel goods in Chennai. Made slowly. Carried forever.';
+  'SPUNI crafts timeless slaughter-free leather bags, wallets, belts and travel goods in Chennai. Made slowly. Carried forever.';
 
 @Injectable({ providedIn: 'root' })
 export class SeoService {
@@ -13,7 +13,7 @@ export class SeoService {
   private readonly document = inject(DOCUMENT);
 
   set(opts: { title?: string; description?: string | null; image?: string | null; path?: string }): void {
-    const fullTitle = opts.title ? `${opts.title} · ${SITE}` : `${SITE} · Handcrafted Vegan Leather`;
+    const fullTitle = opts.title ? `${opts.title} · ${SITE}` : `${SITE} · Handcrafted Slaughter-Free Leather`;
     const description = (opts.description || DEFAULT_DESCRIPTION).slice(0, 300);
     this.title.setTitle(fullTitle);
     this.meta.updateTag({ name: 'description', content: description });

@@ -8,7 +8,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
       @for (copy of copies; track copy) {
         <div class="track" [attr.aria-hidden]="copy > 0">
           @for (item of items(); track $index) {
-            <span class="item">{{ item }}</span><span class="star" aria-hidden="true">✦</span>
+            <span class="item">{{ item }}</span><span class="divider" aria-hidden="true"><i></i></span>
           }
         </div>
       }
@@ -29,8 +29,10 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
       font-weight: 600; letter-spacing: .12em; }
     .item:nth-child(4n+3) { color: var(--burgundy-bright); }
     .dark .item:nth-child(4n+3) { color: var(--gold-light); }
-    .star { color: var(--burgundy); font-size: 1.1rem; }
-    .dark .star { color: var(--gold-light); }
+    .divider { display: flex; align-items: center; gap: 5px; width: 40px; color: var(--burgundy); }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: currentColor; opacity: .7; }
+    .divider i { width: 7px; height: 7px; border: 1px solid currentColor; transform: rotate(45deg); }
+    .dark .divider { color: var(--gold-light); }
     @keyframes scroll { to { transform: translateX(-100%); } }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
