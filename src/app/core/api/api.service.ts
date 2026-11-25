@@ -175,25 +175,26 @@ export class Api {
     return this.http.post<PaymentInit>(this.url(`/orders/${encodeURIComponent(number)}/pay`), {});
   }
 
-  mockComplete(orderNumber: string, providerOrderId: string): Observable<{
-    provider_order_id: string;
-    provider_payment_id: string;
-    signature: string;
-  }> {
-    return this.http.post<{ provider_order_id: string; provider_payment_id: string; signature: string }>(
-      this.url('/payments/mock/complete'),
-      { order_number: orderNumber, provider_order_id: providerOrderId },
-    );
-  }
-
   verifyPayment(body: PaymentVerifyRequest): Observable<Order> {
     return this.http.post<Order>(this.url('/payments/verify'), body);
   }
 
-  paymentFailed(orderNumber: string, providerOrderId: string, reason?: string): Observable<MessageResponse> {
+  paymentFailed(
+    orderNumber: string,
+    providerOrderId: string,
+    reason?: string,
+    errorCode?: string,
+    providerPaymentId?: string,
+  ): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(
       this.url('/payments/failed'),
-      { order_number: orderNumber, provider_order_id: providerOrderId, reason: reason?.slice(0, 300) ?? null },
+      {
+        order_number: orderNumber,
+        provider_order_id: providerOrderId,
+        reason: reason?.slice(0, 300) ?? null,
+        error_code: errorCode?.slice(0, 64) ?? null,
+        provider_payment_id: providerPaymentId ?? null,
+      },
       { context: this.silent() },
     );
   }

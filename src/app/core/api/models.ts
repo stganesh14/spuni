@@ -190,7 +190,6 @@ export interface StoreInfo {
   header_text_2: string;
   customization_marquee_text: string;
   home_media: Record<string, string>;
-  payment_mode: 'mock' | 'razorpay';
   razorpay_key_id: string | null;
 }
 
@@ -269,7 +268,7 @@ export interface CheckoutRequest {
 
 export interface PaymentInit {
   order_number: string;
-  provider: 'mock' | 'razorpay';
+  provider: 'razorpay';
   key_id: string | null;
   provider_order_id: string;
   amount_paise: number;

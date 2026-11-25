@@ -6,8 +6,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
 from app.models import Product
+from app.services.payment_gateway import sign
 from app.services.pricing import reward_for
-from tests.conftest import login
+from tests.conftest import fake_razorpay, login
 
 ADDRESS = {"full_name": "Ravi Kumar", "phone": "9876543210", "line1": "12 Anna Salai", "city": "Chennai",
            "state": "Tamil Nadu", "postal_code": "600002"}
@@ -23,13 +24,10 @@ async def stock(product_id):
 
 
 async def pay(client, token, init):
-    r = await client.post("/api/v1/payments/mock/complete", headers=auth(token),
-                          json={"order_number": init["order_number"], "provider_order_id": init["provider_order_id"]})
-    assert r.status_code == 200, r.text
-    gw = r.json()
+    payment_id = fake_razorpay.capture(init["provider_order_id"])
     r = await client.post("/api/v1/payments/verify", headers=auth(token), json={
-        "order_number": init["order_number"], "provider_order_id": gw["provider_order_id"],
-        "provider_payment_id": gw["provider_payment_id"], "signature": gw["signature"]})
+        "order_number": init["order_number"], "provider_order_id": init["provider_order_id"],
+        "provider_payment_id": payment_id, "signature": sign(init["provider_order_id"], payment_id)})
     return r
 
 
@@ -41,6 +39,11 @@ async def test_quote_is_server_priced(client, catalog):
     assert q["shipping_paise"] == 0  # above free shipping threshold
     r = await client.post("/api/v1/cart/quote", json={"items": [{"product_id": catalog["belt"], "quantity": 5}]})
     assert r.json()["has_issues"] is True
+    r = await client.post("/api/v1/cart/quote", json={
+        "items": [{"product_id": catalog["wallet"], "quantity": 1, "unit_price_paise": 1,
+                   "total_paise": 1, "price": 0}],
+    })
+    assert r.status_code == 422
 
 
 async def test_checkout_requires_login(client, catalog):
@@ -65,6 +68,8 @@ async def test_full_purchase_with_wallet_and_cancel(client, catalog):
     r = await client.post("/api/v1/checkout", headers=auth(token), json=body)
     assert r.json()["order_number"] == init["order_number"]
     assert await stock(catalog["wallet"]) == before - 1
+    r = await client.post(f"/api/v1/orders/{init['order_number']}/pay", headers=auth(token))
+    assert r.status_code == 200 and r.json()["provider_order_id"] == init["provider_order_id"]
 
     # forged signature is rejected
     r = await client.post("/api/v1/payments/verify", headers=auth(token), json={
@@ -106,6 +111,70 @@ async def test_full_purchase_with_wallet_and_cancel(client, catalog):
     async with SessionLocal() as s:
         emails = (await s.execute(text("SELECT template FROM email_outbox WHERE to_email='buyer@example.com'"))).scalars().all()
     assert "order_confirmed" in emails and "order_status" in emails
+
+
+async def test_payment_failure_reason_is_verified_and_visible_to_admin(client, catalog):
+    token = await login(client, "failure@example.com")
+    r = await client.post("/api/v1/checkout", headers=auth(token), json={
+        "items": [{"product_id": catalog["wallet"], "quantity": 1}], "address": ADDRESS,
+        "idempotency_key": uuid.uuid4().hex})
+    assert r.status_code == 200, r.text
+    init = r.json()
+    payment_id = fake_razorpay.fail_payment(init["provider_order_id"])
+    r = await client.post("/api/v1/payments/failed", headers=auth(token), json={
+        "order_number": init["order_number"], "provider_order_id": init["provider_order_id"],
+        "provider_payment_id": payment_id, "error_code": "UNTRUSTED", "reason": "untrusted browser reason",
+    })
+    assert r.status_code == 200, r.text
+
+    admin = await login(client, "admin@spuni.in", admin=True)
+    r = await client.get(f"/api/v1/admin/orders/{init['order_number']}", headers=auth(admin))
+    assert r.status_code == 200, r.text
+    payment = r.json()["payments"][0]
+    assert payment["status"] == "failed"
+    assert payment["failure_source"] == "razorpay_api"
+    assert payment["error_code"] == "PAYMENT_FAILED"
+    assert payment["error_description"] == "Bank declined the payment"
+
+
+async def test_duplicate_capture_is_recorded_and_refunded(client, catalog):
+    token = await login(client, "duplicate@example.com")
+    r = await client.post("/api/v1/checkout", headers=auth(token), json={
+        "items": [{"product_id": catalog["wallet"], "quantity": 1}], "address": ADDRESS,
+        "idempotency_key": uuid.uuid4().hex})
+    init = r.json()
+    first = await pay(client, token, init)
+    assert first.status_code == 200, first.text
+
+    duplicate_id = fake_razorpay.capture(init["provider_order_id"])
+    r = await client.post("/api/v1/payments/verify", headers=auth(token), json={
+        "order_number": init["order_number"], "provider_order_id": init["provider_order_id"],
+        "provider_payment_id": duplicate_id, "signature": sign(init["provider_order_id"], duplicate_id)})
+    assert r.status_code == 200, r.text
+
+    admin = await login(client, "admin@spuni.in", admin=True)
+    r = await client.get(f"/api/v1/admin/orders/{init['order_number']}", headers=auth(admin))
+    assert r.status_code == 200, r.text
+    payments = r.json()["payments"]
+    assert len(payments) == 2
+    assert [payment["status"] for payment in payments] == ["captured", "refunded"]
+    assert payments[1]["refund_status"] == "processed"
+
+
+async def test_refresh_reconciles_captured_payment_before_reopening_checkout(client, catalog):
+    token = await login(client, "refresh@example.com")
+    r = await client.post("/api/v1/checkout", headers=auth(token), json={
+        "items": [{"product_id": catalog["wallet"], "quantity": 1}], "address": ADDRESS,
+        "idempotency_key": uuid.uuid4().hex})
+    assert r.status_code == 200, r.text
+    init = r.json()
+    fake_razorpay.capture(init["provider_order_id"])
+
+    r = await client.post(f"/api/v1/orders/{init['order_number']}/pay", headers=auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["requires_payment"] is False
+    order = await client.get(f"/api/v1/orders/{init['order_number']}", headers=auth(token))
+    assert order.json()["payment_status"] == "paid"
 
 
 async def test_cannot_oversell(client, catalog):

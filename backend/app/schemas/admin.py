@@ -288,7 +288,13 @@ class AdminPaymentOut(OutputModel):
     amount_paise: int
     status: str
     method: str | None
+    error_code: str | None
     error_description: str | None
+    failure_source: str | None
+    refund_id: str | None
+    refund_status: str | None
+    refund_amount_paise: int | None
+    refund_error: str | None
     created_at: datetime
 
 

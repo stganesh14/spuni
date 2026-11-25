@@ -244,7 +244,10 @@ def _admin_order_out(order: Order) -> AdminOrderOut:
         payments=[{
             "provider": p.provider, "provider_order_id": p.provider_order_id,
             "provider_payment_id": p.provider_payment_id, "amount_paise": p.amount_paise, "status": p.status,
-            "method": p.method, "error_description": p.error_description, "created_at": p.created_at,
+            "method": p.method, "error_code": p.error_code, "error_description": p.error_description,
+            "failure_source": p.failure_source, "refund_id": p.refund_id, "refund_status": p.refund_status,
+            "refund_amount_paise": p.refund_amount_paise, "refund_error": p.refund_error,
+            "created_at": p.created_at,
         } for p in order.payments],
         allowed_transitions=_allowed_transitions(order),
     )

@@ -184,13 +184,26 @@ class Payment(IdMixin, TimestampMixin, Base):
         check_in("status", PaymentAttemptStatus),
         CheckConstraint("amount_paise > 0", name="amount_positive"),
         CheckConstraint("currency = 'INR'", name="currency_supported"),
+        CheckConstraint(
+            "failure_source IS NULL OR failure_source IN ('checkout_report', 'razorpay_api', 'razorpay_webhook')",
+            name="failure_source_valid",
+        ),
+        CheckConstraint(
+            "refund_status IS NULL OR refund_status IN ('requested', 'pending', 'processed', 'failed', 'unknown')",
+            name="refund_status_valid",
+        ),
+        CheckConstraint(
+            "refund_amount_paise IS NULL OR (refund_amount_paise > 0 AND refund_amount_paise <= amount_paise)",
+            name="refund_amount_valid",
+        ),
+        Index("ix_payments_provider_order_id", "provider_order_id"),
     )
 
     order_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider: Mapped[str] = mapped_column(String(16), nullable=False)
-    provider_order_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    provider_order_id: Mapped[str] = mapped_column(String(64), nullable=False)
     provider_payment_id: Mapped[str | None] = mapped_column(String(64), unique=True)
     signature: Mapped[str | None] = mapped_column(String(128))
     amount_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -201,6 +214,11 @@ class Payment(IdMixin, TimestampMixin, Base):
     method: Mapped[str | None] = mapped_column(String(32))
     error_code: Mapped[str | None] = mapped_column(String(64))
     error_description: Mapped[str | None] = mapped_column(String(500))
+    failure_source: Mapped[str | None] = mapped_column(String(24))
+    refund_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    refund_status: Mapped[str | None] = mapped_column(String(20))
+    refund_amount_paise: Mapped[int | None] = mapped_column(BigInteger)
+    refund_error: Mapped[str | None] = mapped_column(String(500))
     raw_payload: Mapped[dict | None] = mapped_column(JSONB)
 
     order: Mapped[Order] = relationship(back_populates="payments")

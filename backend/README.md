@@ -70,27 +70,26 @@ pytest -q          # uses the DATABASE_URL database, in its own schema
 ruff check .
 ```
 
-## Payments: mock now, Razorpay later
+## Razorpay payments
 
-`PAYMENT_MODE=mock` is the default. Checkout opens a SPUNI test payment sheet and every payment succeeds. The order still goes through the real path: pending, then paid with a captured payment row, then confirmed, with emails and wallet points.
+The checkout only uses Razorpay. The API prices product IDs and quantities from the database, creates the provider order for that exact INR total, verifies the payment signature, and fetches the payment from Razorpay before confirming an order. Client-provided prices are rejected.
 
-To go live with Razorpay:
+Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` in the private backend `.env` for every environment. Startup fails closed if credentials are missing or the key ID is not a Razorpay test/live key. Use Razorpay test credentials during development and live credentials only for production.
 
-1. Set these in `.env`:
-   ```
-   PAYMENT_MODE=razorpay
-   RAZORPAY_KEY_ID=rzp_live_...
-   RAZORPAY_KEY_SECRET=...
-   RAZORPAY_WEBHOOK_SECRET=...
-   ```
-2. In the Razorpay dashboard, add the webhook `https://<your-domain>/api/v1/payments/razorpay/webhook` with the events `payment.captured`, `payment.failed` and `order.paid`, using the same secret.
-3. Restart the API. No front-end change is needed: the storefront loads Razorpay Checkout automatically when the API says `gateway: "razorpay"`.
+Configure the webhook URL `https://<your-domain>/api/v1/payments/razorpay/webhook` in Razorpay with the same webhook secret and these events:
 
-**Never run production with `PAYMENT_MODE=mock`.** Anyone could complete orders without paying.
+- `payment.authorized`, `payment.captured`, `payment.failed`
+- `refund.created`, `refund.processed`, `refund.failed`
+
+Enable automatic payment capture in the Razorpay dashboard. An authorization is intentionally not treated as a successful order payment; the order is confirmed only after capture.
+
+The checkout resumes a pending order through the authenticated `/orders/{number}/pay` endpoint after a page refresh. Payment authorization alone is not treated as paid; capture is required. Refund requests are persisted before the gateway call and are not retried automatically when the result is ambiguous. In that case, reconcile in the Razorpay dashboard; webhook updates will be shown in the admin order's Payments section alongside failure reasons and refund status.
+
+Do not expose Razorpay secrets in the storefront, admin app, source control, or support chats. Only the public key ID is sent to the browser.
 
 ## Production checklist
 
-- Set `ENVIRONMENT=production`. Startup refuses weak `SECRET_KEY` and `OTP_PEPPER` values, `COOKIE_SECURE=false` and `DEBUG=true`.
+- Set `ENVIRONMENT=production`. Startup refuses missing Razorpay credentials, weak `SECRET_KEY` and `OTP_PEPPER` values, `COOKIE_SECURE=false` and `DEBUG=true`.
 - Set `TRUSTED_HOSTS` and `CORS_ORIGINS` to your real domains.
 - Set `EMAIL_BACKEND=smtp` with SMTP credentials. For Gmail, use an app password.
 - Run `alembic upgrade head` on every deploy.

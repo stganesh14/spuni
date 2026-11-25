@@ -63,12 +63,13 @@ class PaymentStatus(StrEnum):
 
 
 class PaymentProvider(StrEnum):
-    MOCK = "mock"
+    LEGACY = "legacy"
     RAZORPAY = "razorpay"
 
 
 class PaymentAttemptStatus(StrEnum):
     CREATED = "created"
+    AUTHORIZED = "authorized"
     CAPTURED = "captured"
     FAILED = "failed"
     REFUNDED = "refunded"

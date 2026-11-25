@@ -284,7 +284,13 @@ export interface Payment {
   amount_paise: number;
   status: string;
   method: string | null;
+  error_code: string | null;
   error_description: string | null;
+  failure_source: string | null;
+  refund_id: string | null;
+  refund_status: 'requested' | 'pending' | 'processed' | 'failed' | 'unknown' | null;
+  refund_amount_paise: number | null;
+  refund_error: string | null;
   created_at: string;
 }
 

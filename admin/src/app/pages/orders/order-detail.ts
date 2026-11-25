@@ -129,7 +129,7 @@ export class OrderDetailPage {
         title: s === 'cancelled' ? `Cancel order ${o.number}?` : `Refund order ${o.number}?`,
         message:
           (paid
-            ? `The payment of ${formatPaise(o.total_paise)} will be refunded to the customer's original payment method`
+            ? `A refund request for ${formatPaise(o.total_paise)} will be sent to Razorpay. The order is marked refunded only after Razorpay confirms it`
             : 'No payment was captured, so nothing will be refunded') +
           (o.wallet_redeemed_paise ? `, Spuni Cash used (${formatPaise(o.wallet_redeemed_paise)} rupee value) is returned` : '') +
           (o.wallet_earned_paise ? `, and Spuni Cash earned on this order is reversed` : '') +
@@ -155,7 +155,11 @@ export class OrderDetailPage {
         }),
       );
       this.setOrder(updated);
-      this.toast.success(`Order ${updated.number} is now ${humanize(updated.status).toLowerCase()}.`);
+      this.toast.success(
+        s === 'refunded' && updated.payment_status !== 'refunded'
+          ? `Refund request recorded for ${updated.number}. Check the Payments section for its status.`
+          : `Order ${updated.number} is now ${humanize(updated.status).toLowerCase()}.`,
+      );
     } catch (err) {
       const e = toApiError(err);
       applyServerErrors(this.statusForm, e);

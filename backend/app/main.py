@@ -30,8 +30,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     if settings.environment != "test":
         email_worker.start()
         scheduler.start()
-    logger.info("SPUNI API started (env=%s, payments=%s, email=%s)", settings.environment,
-                settings.payment_mode, settings.email_backend)
+    logger.info("SPUNI API started (env=%s, payments=razorpay, email=%s)", settings.environment,
+                settings.email_backend)
     yield
     await scheduler.stop()
     await email_worker.stop()

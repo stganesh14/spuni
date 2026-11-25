@@ -1,15 +1,8 @@
-"""Payment gateway adapters.
-
-``razorpay``: real Razorpay Orders API + signature verification.
-``mock``: a local stand-in with the *same* contract (order id, payment id and an
-HMAC signature checked by the same verification code), so switching to the real
-gateway later is a configuration change: set PAYMENT_MODE=razorpay and the keys.
-"""
+"""Razorpay Orders API, payment verification, webhooks, and refunds."""
 
 import hashlib
 import hmac
 import logging
-import secrets
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,19 +24,11 @@ class GatewayOrder:
     raw: dict[str, Any]
 
 
-def _mock_secret() -> bytes:
-    return hashlib.sha256(b"mock-gateway|" + settings.secret_key.get_secret_value().encode()).digest()
-
-
-def _secret() -> bytes:
-    if settings.payment_mode == "mock":
-        return _mock_secret()
-    return settings.razorpay_key_secret.get_secret_value().encode()
-
-
 def sign(provider_order_id: str, provider_payment_id: str) -> str:
     message = f"{provider_order_id}|{provider_payment_id}".encode()
-    return hmac.new(_secret(), message, hashlib.sha256).hexdigest()
+    return hmac.new(
+        settings.razorpay_key_secret.get_secret_value().encode(), message, "sha256"
+    ).hexdigest()
 
 
 def verify_signature(provider_order_id: str, provider_payment_id: str, signature: str) -> bool:
@@ -58,13 +43,21 @@ def verify_webhook(body: bytes, signature: str | None) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-async def create_order(*, amount_paise: int, receipt: str, notes: dict[str, str]) -> GatewayOrder:
-    if settings.payment_mode == "mock":
-        order_id = f"order_mock{secrets.token_hex(8)}"
-        return GatewayOrder("mock", order_id, amount_paise, {"id": order_id, "amount": amount_paise})
+def _gateway_error(response: httpx.Response) -> tuple[str | None, str | None]:
+    try:
+        body = response.json()
+    except ValueError:
+        return None, None
+    error = body.get("error") if isinstance(body, dict) else None
+    if not isinstance(error, dict):
+        return None, None
+    code = error.get("code")
+    description = error.get("description")
+    return (str(code)[:64] if code else None, str(description)[:500] if description else None)
 
-    payload = {"amount": amount_paise, "currency": "INR", "receipt": receipt, "notes": notes,
-               "payment_capture": 1}
+
+async def create_order(*, amount_paise: int, receipt: str, notes: dict[str, str]) -> GatewayOrder:
+    payload = {"amount": amount_paise, "currency": "INR", "receipt": receipt, "notes": notes}
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.post(
@@ -73,22 +66,32 @@ async def create_order(*, amount_paise: int, receipt: str, notes: dict[str, str]
                 auth=(settings.razorpay_key_id, settings.razorpay_key_secret.get_secret_value()),
             )
     except httpx.HTTPError as exc:
-        logger.error("Razorpay order creation failed: %s", exc)
+        logger.error("Razorpay order creation failed: %s", type(exc).__name__)
         raise AppError("Payment service is unavailable. Please try again.", code="gateway_unavailable",
                        status_code=503) from None
     if response.status_code >= 300:
-        logger.error("Razorpay order creation rejected: %s %s", response.status_code, response.text[:300])
+        code, _ = _gateway_error(response)
+        logger.error("Razorpay order creation rejected: status=%s code=%s", response.status_code, code)
         raise AppError("Payment could not be started. Please try again.", code="gateway_error", status_code=502)
-    data = response.json()
-    if int(data.get("amount", -1)) != amount_paise:
+    try:
+        data = response.json()
+        returned_amount = int(data.get("amount", -1))
+    except (ValueError, TypeError, AttributeError):
+        data, returned_amount = {}, -1
+    if (
+        not isinstance(data.get("id"), str)
+        or not data["id"].startswith("order_")
+        or returned_amount != amount_paise
+        or data.get("currency") != "INR"
+        or data.get("status") != "created"
+    ):
+        logger.error("Razorpay returned an invalid order response.")
         raise AppError("Payment amount mismatch.", code="gateway_amount_mismatch", status_code=502)
     return GatewayOrder("razorpay", data["id"], amount_paise, data)
 
 
-async def fetch_payment(provider_payment_id: str) -> dict[str, Any] | None:
-    """Server-to-server confirmation of a payment (Razorpay only)."""
-    if settings.payment_mode == "mock":
-        return None
+async def fetch_payment(provider_payment_id: str) -> dict[str, Any]:
+    """Fetch payment details server-to-server before accepting a payment."""
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             response = await client.get(
@@ -96,17 +99,56 @@ async def fetch_payment(provider_payment_id: str) -> dict[str, Any] | None:
                 auth=(settings.razorpay_key_id, settings.razorpay_key_secret.get_secret_value()),
             )
     except httpx.HTTPError as exc:
-        logger.error("Razorpay payment fetch failed: %s", exc)
+        logger.error("Razorpay payment fetch failed: %s", type(exc).__name__)
         raise AppError("Could not confirm the payment yet. If money was deducted it will be confirmed shortly.",
                        code="gateway_unavailable", status_code=503) from None
     if response.status_code >= 300:
+        code, _ = _gateway_error(response)
+        logger.error("Razorpay payment lookup rejected: status=%s code=%s", response.status_code, code)
         raise AppError("Payment could not be confirmed.", code="gateway_error", status_code=502)
-    return response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        raise AppError("Payment details could not be confirmed.", code="gateway_invalid_response",
+                       status_code=502) from None
+    if not isinstance(data, dict) or data.get("id") != provider_payment_id:
+        raise AppError("Payment details could not be confirmed.", code="gateway_invalid_response",
+                       status_code=502)
+    return data
+
+
+async def fetch_order_payments(provider_order_id: str) -> list[dict[str, Any]]:
+    """Fetch payment attempts for an order to recover a checkout interrupted before its callback."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"{RAZORPAY_API}/orders/{provider_order_id}/payments?count=100",
+                auth=(settings.razorpay_key_id, settings.razorpay_key_secret.get_secret_value()),
+            )
+    except httpx.HTTPError as exc:
+        logger.error("Razorpay order payment lookup failed: %s", type(exc).__name__)
+        raise AppError("Could not check the payment status yet. Please try again.",
+                       code="gateway_unavailable", status_code=503) from None
+    if response.status_code >= 300:
+        code, _ = _gateway_error(response)
+        logger.error("Razorpay order payment lookup rejected: status=%s code=%s", response.status_code, code)
+        raise AppError("Could not check the payment status yet. Please try again.",
+                       code="gateway_error", status_code=502)
+    try:
+        data = response.json()
+    except ValueError:
+        raise AppError("Razorpay returned invalid payment details.", code="gateway_invalid_response",
+                       status_code=502) from None
+    if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+        raise AppError("Razorpay returned invalid payment details.", code="gateway_invalid_response",
+                       status_code=502)
+    if any(not isinstance(item, dict) for item in data["items"]):
+        raise AppError("Razorpay returned invalid payment details.", code="gateway_invalid_response",
+                       status_code=502)
+    return data["items"]
 
 
 async def refund(provider_payment_id: str, amount_paise: int, notes: dict[str, str]) -> dict[str, Any]:
-    if settings.payment_mode == "mock":
-        return {"id": f"rfnd_mock{secrets.token_hex(6)}", "amount": amount_paise, "status": "processed"}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
@@ -115,18 +157,36 @@ async def refund(provider_payment_id: str, amount_paise: int, notes: dict[str, s
                 auth=(settings.razorpay_key_id, settings.razorpay_key_secret.get_secret_value()),
             )
     except httpx.HTTPError as exc:
-        logger.error("Razorpay refund failed: %s", exc)
+        logger.error("Razorpay refund request failed: %s", type(exc).__name__)
         raise AppError("Refund could not be issued right now. Try again.", code="gateway_unavailable",
                        status_code=503) from None
     if response.status_code >= 300:
-        logger.error("Razorpay refund rejected: %s %s", response.status_code, response.text[:300])
-        raise AppError("The payment gateway rejected the refund.", code="refund_rejected", status_code=502)
-    return response.json()
-
-
-def mock_capture(provider_order_id: str) -> tuple[str, str]:
-    """Simulates the Razorpay checkout popup completing successfully."""
-    if settings.payment_mode != "mock":
-        raise AppError("Mock payments are disabled.", code="mock_disabled", status_code=403)
-    payment_id = f"pay_mock{secrets.token_hex(8)}"
-    return payment_id, sign(provider_order_id, payment_id)
+        code, description = _gateway_error(response)
+        logger.error("Razorpay refund rejected: status=%s code=%s", response.status_code, code)
+        if response.status_code >= 500:
+            raise AppError(
+                "Refund outcome could not be confirmed. Reconcile it in Razorpay.",
+                code="gateway_unavailable",
+                status_code=503,
+            )
+        raise AppError(
+            "The payment gateway rejected the refund.",
+            code="refund_rejected",
+            status_code=502,
+            details={"gateway_code": code, "gateway_description": description},
+        )
+    try:
+        data = response.json()
+        returned_amount = int(data.get("amount", -1))
+    except (ValueError, TypeError, AttributeError):
+        data, returned_amount = {}, -1
+    if (
+        not isinstance(data.get("id"), str)
+        or not data["id"].startswith("rfnd_")
+        or data.get("payment_id") != provider_payment_id
+        or returned_amount != amount_paise
+        or data.get("status") not in {"pending", "processed"}
+    ):
+        raise AppError("The payment gateway returned an invalid refund response.",
+                       code="refund_invalid_response", status_code=502)
+    return data

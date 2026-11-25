@@ -44,11 +44,11 @@
         @if (chosen()) {
           @if (isDestructive()) {
             <p class="callout callout-danger small">
-              {{ chosen() === 'cancelled' ? 'Cancelling' : 'Refunding' }} this order will refund the payment
+              {{ chosen() === 'cancelled' ? 'Cancelling this order' : 'Requesting a Razorpay refund' }}
               @if (o.payment_status === 'paid') {
                 of <strong>{{ o.total_paise | money }}</strong>
               }
-              and reverse Spuni Cash. You'll be asked to confirm.
+              and reverse Spuni Cash. Refund status appears in Payments; the order is marked refunded only after Razorpay confirms processing.
             </p>
           }
           <app-field label="Note (optional)" for="o-note" [control]="statusForm.controls.note" hint="Saved in the timeline and included in the customer email.">
@@ -167,10 +167,26 @@
                       @if (p.error_description) {
                         <div class="danger-text small">{{ p.error_description }}</div>
                       }
+                      @if (p.error_code) {
+                        <div class="muted small">Code: {{ p.error_code }}</div>
+                      }
+                      @if (p.failure_source) {
+                        <div class="muted small">Failure reported by {{ p.failure_source | humanize }}</div>
+                      }
                     </td>
                     <td class="num" data-label="Amount">{{ p.amount_paise | money }}</td>
                     <td data-label="Date" class="nowrap">{{ p.created_at | dt: true }}</td>
                   </tr>
+                  @if (p.refund_status) {
+                    <tr>
+                      <td colspan="6">
+                        <strong>Refund: {{ p.refund_status | humanize }}</strong>
+                        @if (p.refund_amount_paise) { · {{ p.refund_amount_paise | money }} }
+                        @if (p.refund_id) { <span class="muted mono"> · {{ p.refund_id }}</span> }
+                        @if (p.refund_error) { <div class="danger-text small">{{ p.refund_error }}</div> }
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>

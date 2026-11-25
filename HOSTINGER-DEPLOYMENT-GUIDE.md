@@ -27,7 +27,7 @@ This is the project path shown in your latest VPS terminal output (`~/spuni/back
 
 > **Do not paste real passwords, SMTP credentials, database URLs, or signing secrets into chat or commit them to Git.** If any real credential has been committed to a tracked file, rotate it before production. Keep the VPS `backend/.env` private and backed up securely.
 >
-> The current working copy's `backend/.env.example` contains credential-like values. Do not copy those values into production. Replace any real values with placeholders before publishing the repository, and rotate any credentials that were real.
+> `backend/.env.example` contains placeholders only. Generate fresh production secrets and use private credentials; never commit them.
 
 ## 1. Point the domain and open the VPS firewall
 
@@ -176,7 +176,6 @@ SMTP_START_TLS=true
 EMAIL_FROM=SPUNI <YOUR_VERIFIED_SENDER>
 EMAIL_REPLY_TO=YOUR_REPLY_ADDRESS
 
-PAYMENT_MODE=razorpay
 RAZORPAY_KEY_ID=YOUR_LIVE_KEY_ID
 RAZORPAY_KEY_SECRET=YOUR_LIVE_KEY_SECRET
 RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
@@ -187,7 +186,9 @@ INITIAL_ADMIN_EMAIL=YOUR_ADMIN_EMAIL
 Important:
 
 - Production startup requires strong secrets, `COOKIE_SECURE=true`, and `DEBUG=false`.
-- The backend defaults to mock payments. **Do not run a public production store with `PAYMENT_MODE=mock`; mock payments allow orders to appear paid without collecting money.** Set up Razorpay live credentials and its webhook before accepting real orders.
+- Razorpay credentials are required for startup. Configure live credentials and the signed webhook before accepting real orders; use test credentials only in a non-production environment.
+- In the Razorpay dashboard, configure `https://spunileathers.com/api/v1/payments/razorpay/webhook` for payment authorized/captured/failed and refund created/processed/failed events. Use the same webhook secret as `RAZORPAY_WEBHOOK_SECRET`.
+- Enable automatic payment capture. The backend confirms orders only when Razorpay reports a captured payment.
 - Set SMTP values to a working transactional email account; OTP sign-in depends on email delivery.
 - Keep `.env` readable only by the app owner (`chmod 600 .env`).
 - Do not add a `DATABASE_ADMIN_URL` unless needed for initial database creation. The commands above create the database/role without app-level superuser access.

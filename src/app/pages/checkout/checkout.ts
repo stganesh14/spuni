@@ -30,6 +30,8 @@ import { SpuniCashPipe } from '../../shared/pipes/spuni-cash.pipe';
 
 const NAME = /^[A-Za-zÀ-ɏऀ-෿][A-Za-zÀ-ɏऀ-෿ .'-]{1,119}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PENDING_ORDER_KEY = 'spuni.checkout.pending-order';
+const IDEMPOTENCY_KEY = 'spuni.checkout.idempotency-key';
 
 @Component({
   selector: 'app-checkout-page',
@@ -61,9 +63,12 @@ export class CheckoutPage {
   protected note = '';
 
   protected readonly placing = signal(false);
+  protected readonly restoringPending = signal(!!safeStorage.session(PENDING_ORDER_KEY));
+  protected readonly hasSavedPendingOrder = signal(!!safeStorage.session(PENDING_ORDER_KEY));
   protected readonly error = signal('');
   protected readonly pending = signal<PaymentInit | null>(null);
-  private idempotencyKey = newIdempotencyKey();
+  private idempotencyKey = safeStorage.session(IDEMPOTENCY_KEY) ?? newIdempotencyKey();
+  private cartFingerprint = '';
 
   private readonly quoteInput = computed(() => ({
     lines: this.cart.lines(),
@@ -88,6 +93,10 @@ export class CheckoutPage {
 
   constructor() {
     inject(SeoService).set({ title: 'Checkout', path: '/checkout' });
+    this.cartFingerprint = JSON.stringify(this.cart.lines());
+    safeStorage.setSession(IDEMPOTENCY_KEY, this.idempotencyKey);
+    const pendingOrderNumber = safeStorage.session(PENDING_ORDER_KEY);
+    if (pendingOrderNumber) this.restorePendingOrder(pendingOrderNumber);
     this.store.loadInfo().subscribe();
     this.api.addresses().subscribe({
       next: (list) => {
@@ -100,9 +109,11 @@ export class CheckoutPage {
 
     // Any change to what is being bought starts a fresh order attempt.
     effect(() => {
-      this.cart.lines();
+      const fingerprint = JSON.stringify(this.cart.lines());
       untracked(() => {
-        if (!this.pending()) this.idempotencyKey = newIdempotencyKey();
+        if (fingerprint === this.cartFingerprint) return;
+        this.cartFingerprint = fingerprint;
+        if (!this.pending()) this.rotateIdempotencyKey();
       });
     });
   }
@@ -166,13 +177,15 @@ export class CheckoutPage {
     this.api.checkout(body).subscribe({
       next: (init) => {
         this.pending.set(init);
+        safeStorage.setSession(PENDING_ORDER_KEY, init.order_number);
+        this.hasSavedPendingOrder.set(true);
         void this.runPayment(init);
       },
       error: (err) => {
         this.placing.set(false);
         this.error.set(apiErrorMessage(err, 'We could not place your order. Please try again.'));
         const code = apiErrorCode(err);
-        if (code === 'order_expired' || code === 'order_not_payable') this.idempotencyKey = newIdempotencyKey();
+        if (code === 'order_expired' || code === 'order_not_payable') this.rotateIdempotencyKey();
       },
     });
   }
@@ -185,6 +198,8 @@ export class CheckoutPage {
     this.api.retryPayment(pending.order_number).subscribe({
       next: (init) => {
         this.pending.set(init);
+        safeStorage.setSession(PENDING_ORDER_KEY, init.order_number);
+        this.hasSavedPendingOrder.set(true);
         void this.runPayment(init);
       },
       error: (err) => {
@@ -192,8 +207,7 @@ export class CheckoutPage {
         this.error.set(apiErrorMessage(err));
         const code = apiErrorCode(err);
         if (code === 'order_expired' || code === 'order_not_payable') {
-          this.pending.set(null);
-          this.idempotencyKey = newIdempotencyKey();
+          this.clearPendingOrder();
         }
       },
     });
@@ -205,7 +219,7 @@ export class CheckoutPage {
       this.cart.clear();
       safeStorage.setSession(GIFT_INTENT_KEY, '');
       this.store.refreshWallet();
-      this.pending.set(null);
+      this.clearPendingOrder();
       this.router.navigate(['/order', order.number], { queryParams: { placed: 1 } });
     } catch (err) {
       this.error.set(paymentErrorMessage(err));
@@ -213,5 +227,46 @@ export class CheckoutPage {
     } finally {
       this.placing.set(false);
     }
+  }
+
+  private restorePendingOrder(number: string): void {
+    this.api.retryPayment(number).subscribe({
+      next: (init) => {
+        this.restoringPending.set(false);
+        this.pending.set(init);
+        if (!init.requires_payment) {
+          this.placing.set(true);
+          void this.runPayment(init);
+        }
+      },
+      error: (err) => {
+        this.restoringPending.set(false);
+        const code = apiErrorCode(err);
+        if (code === 'order_expired' || code === 'order_not_payable' || code === 'not_found') {
+          this.clearPendingOrder();
+        }
+        this.error.set(apiErrorMessage(err, 'We could not restore your pending payment. Please try again.'));
+      },
+    });
+  }
+
+  protected retryRestorePending(): void {
+    const number = safeStorage.session(PENDING_ORDER_KEY);
+    if (!number || this.restoringPending()) return;
+    this.error.set('');
+    this.restoringPending.set(true);
+    this.restorePendingOrder(number);
+  }
+
+  private clearPendingOrder(): void {
+    this.pending.set(null);
+    safeStorage.setSession(PENDING_ORDER_KEY, '');
+    this.hasSavedPendingOrder.set(false);
+    this.rotateIdempotencyKey();
+  }
+
+  private rotateIdempotencyKey(): void {
+    this.idempotencyKey = newIdempotencyKey();
+    safeStorage.setSession(IDEMPOTENCY_KEY, this.idempotencyKey);
   }
 }

@@ -41,7 +41,7 @@ In development, emails are printed to the API log. Print the latest sign-in code
   - Account: overview, orders, wallet, addresses, gift cards, customisations, profile.
   - Content: What's New (Notify me), Gift a loved one (e-gift cards and gift wrap), Customise (three ways, with uploads), wishlist, contact, about, FAQ, shipping, returns, privacy, terms, unsubscribe and 404.
 - **SPUNI Wallet:** the header shows the balance. Points are earned on paid orders and can be spent on the next one.
-- **Payments:** a mock Razorpay sheet where every payment succeeds (`PAYMENT_MODE=mock`). Switching to real Razorpay is backend-only; see `backend/README.md`.
+- **Payments:** real Razorpay checkout only. Prices are calculated by the API from product records; see `backend/README.md` for credentials and webhook setup.
 
 ### Build and run in production
 
@@ -57,7 +57,7 @@ The SSR server proxies `/api` and `/media` to `API_ORIGIN`, so a single nginx `p
 The admin app covers:
 
 - Dashboard
-- Orders: status, shipping with courier and tracking, cancellations and refunds to the wallet
+- Orders: status, shipping with courier and tracking, cancellations, and Razorpay refund status/details
 - Products, categories and hero banners, with image upload
 - What's New launches, with **Notify subscribers**, which emails everyone who tapped Notify me
 - Customers, wallet adjustments, gift cards, customisation requests, contact messages, the email log and store settings

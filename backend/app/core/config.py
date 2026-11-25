@@ -76,7 +76,6 @@ class Settings(BaseSettings):
     email_max_attempts: int = 5
 
     # ------------------------------------------------------------- payments
-    payment_mode: Literal["mock", "razorpay"] = "mock"
     razorpay_key_id: str = ""
     razorpay_key_secret: SecretStr = SecretStr("")
     razorpay_webhook_secret: SecretStr = SecretStr("")
@@ -103,7 +102,27 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _production_guards(self) -> "Settings":
+        key_secret = self.razorpay_key_secret.get_secret_value().strip()
+        webhook_secret = self.razorpay_webhook_secret.get_secret_value().strip()
+        if not (
+            self.razorpay_key_id.strip()
+            and key_secret
+            and webhook_secret
+        ):
+            raise ValueError(
+                "RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET are required"
+            )
+        if not self.razorpay_key_id.startswith(("rzp_test_", "rzp_live_")):
+            raise ValueError("RAZORPAY_KEY_ID must be a Razorpay test or live key")
+        credential_values = (self.razorpay_key_id, key_secret, webhook_secret)
+        if any(
+            "replace_with" in value.casefold() or value.casefold().startswith("your_")
+            for value in credential_values
+        ):
+            raise ValueError("Replace the Razorpay placeholders with credentials from your Razorpay account")
         if self.environment == "production":
+            if not self.razorpay_key_id.startswith("rzp_live_"):
+                raise ValueError("Production must use Razorpay live credentials")
             weak = ("change-me", "secret", "password")
             key = self.secret_key.get_secret_value()
             if len(key) < 48 or any(w in key for w in weak):
@@ -114,10 +133,6 @@ class Settings(BaseSettings):
                 raise ValueError("COOKIE_SECURE must be true in production")
             if self.debug:
                 raise ValueError("DEBUG must be false in production")
-            if self.payment_mode == "razorpay" and not (
-                self.razorpay_key_id and self.razorpay_key_secret.get_secret_value()
-            ):
-                raise ValueError("Razorpay keys are required when PAYMENT_MODE=razorpay")
         return self
 
     @property

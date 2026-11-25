@@ -27,6 +27,7 @@ from app.models.enums import (
     OrderStatus,
     OrderType,
     PaymentAttemptStatus,
+    PaymentProvider,
     PaymentStatus,
     WalletTxnReason,
 )
@@ -61,10 +62,11 @@ STATUS_COPY = {
     OrderStatus.DELIVERED: ("Delivered. Enjoy it.",
                             "Your order has been delivered. We hope it ages beautifully with you."),
     OrderStatus.CANCELLED: ("Your order has been cancelled.",
-                            "Your order was cancelled. Any amount paid will be refunded to the original payment "
-                            "method within 5-7 working days, and Spuni Cash used has been returned."),
+                            "Your order was cancelled. Any captured payment is being reconciled with Razorpay; "
+                            "we will update you once its refund is confirmed. Spuni Cash used has been returned."),
     OrderStatus.REFUNDED: ("Your refund has been issued.",
-                           "We have issued a refund for your order. It usually reflects within 5-7 working days."),
+                           "Razorpay has confirmed your refund. The amount may take several working days to appear "
+                           "on your original payment method."),
 }
 
 
@@ -96,6 +98,34 @@ async def get_order(db: AsyncSession, number: str, *, user_id: int | None = None
     if order is None:
         raise NotFound("We couldn't find that order.")
     return order
+
+
+def _payment_for_attempt(
+    order: Order, provider_order_id: str, provider_payment_id: str | None = None, *, create: bool = False,
+) -> Payment | None:
+    attempts = [p for p in order.payments if p.provider_order_id == provider_order_id]
+    if not attempts:
+        return None
+    if provider_payment_id:
+        match = next((p for p in attempts if p.provider_payment_id == provider_payment_id), None)
+        if match is not None:
+            return match
+    reusable = next(
+        (p for p in reversed(attempts)
+         if p.status == PaymentAttemptStatus.CREATED and p.provider_payment_id is None),
+        None,
+    )
+    if reusable is not None or not create:
+        return reusable
+    base = attempts[-1]
+    payment = Payment(
+        provider=base.provider,
+        provider_order_id=provider_order_id,
+        amount_paise=base.amount_paise,
+        currency=base.currency,
+    )
+    order.payments.append(payment)
+    return payment
 
 
 def order_out(order: Order) -> OrderOut:
@@ -289,8 +319,8 @@ async def create_gift_card_order(db: AsyncSession, user: User, body: GiftCardPur
 def _init_out(order: Order, user: User, *, provider_order_id: str, requires_payment: bool = True) -> PaymentInitOut:
     return PaymentInitOut(
         order_number=order.number,
-        provider=settings.payment_mode,
-        key_id=settings.razorpay_key_id if settings.payment_mode == "razorpay" else None,
+        provider=PaymentProvider.RAZORPAY,
+        key_id=settings.razorpay_key_id,
         provider_order_id=provider_order_id,
         amount_paise=order.total_paise,
         currency="INR",
@@ -303,19 +333,91 @@ def _init_out(order: Order, user: User, *, provider_order_id: str, requires_paym
     )
 
 
+async def _reconcile_order_payments(db: AsyncSession, order: Order, user: User) -> Order:
+    order_number = order.number
+    provider_order_ids = list(dict.fromkeys(
+        p.provider_order_id for p in order.payments
+        if p.provider == PaymentProvider.RAZORPAY
+    ))
+    for provider_order_id in provider_order_ids:
+        expected = next(
+            (p for p in order.payments if p.provider_order_id == provider_order_id),
+            None,
+        )
+        if expected is None:
+            continue
+        remote_payments = await gateway.fetch_order_payments(provider_order_id)
+        for remote in remote_payments:
+            payment_id = remote.get("id")
+            if not isinstance(payment_id, str) or remote.get("order_id") != provider_order_id:
+                continue
+            try:
+                remote_amount = int(remote.get("amount", -1))
+            except (TypeError, ValueError):
+                remote_amount = -1
+            currency = remote.get("currency")
+            if remote_amount != expected.amount_paise or currency != "INR":
+                logger.error("Razorpay payment mismatch during recovery for order %s", order_number)
+                attempt = _payment_for_attempt(order, provider_order_id, payment_id, create=False)
+                if attempt:
+                    attempt.failure_source = "razorpay_api"
+                    attempt.error_code = "payment_mismatch"
+                    attempt.error_description = "Razorpay payment amount or currency does not match the order."
+                    await db.commit()
+                continue
+            status = remote.get("status")
+            if status == "captured":
+                await confirm_payment(
+                    db, order_number=order_number, provider_order_id=provider_order_id,
+                    provider_payment_id=payment_id, signature=gateway.sign(provider_order_id, payment_id),
+                    user_id=user.id, source="server_reconciliation",
+                )
+            elif status == "authorized":
+                await mark_payment_authorized(
+                    db, order_number=order_number, provider_order_id=provider_order_id,
+                    provider_payment_id=payment_id, method=remote.get("method"),
+                    amount_paise=remote_amount, currency=currency, user_id=user.id,
+                )
+            elif status == "failed":
+                await mark_payment_failed(
+                    db, order_number=order_number, provider_order_id=provider_order_id, user_id=user.id,
+                    reason=remote.get("error_description"), error_code=remote.get("error_code"),
+                    source="razorpay_api", provider_payment_id=payment_id,
+                    amount_paise=remote_amount, currency=currency,
+                )
+            order = await get_order(db, order_number, user_id=user.id)
+    return order
+
+
 async def payment_init(db: AsyncSession, order: Order, user: User, *, commit: bool = True) -> PaymentInitOut:
     """Create (or reuse) a gateway order for a pending order."""
     if order.payment_status == PaymentStatus.PAID:
+        order = await _reconcile_order_payments(db, order, user)
         return _init_out(order, user, provider_order_id="paid", requires_payment=False)
-    if order.status != OrderStatus.PENDING_PAYMENT:
+    if order.status not in (OrderStatus.PENDING_PAYMENT, OrderStatus.EXPIRED):
+        if any(p.status == PaymentAttemptStatus.AUTHORIZED for p in order.payments):
+            raise Conflict(
+                "Your payment is authorized and awaiting confirmation. Please check your order status shortly.",
+                code="payment_awaiting_capture",
+            )
         raise Conflict("This order can no longer be paid.", code="order_not_payable")
+    order = await _reconcile_order_payments(db, order, user)
+    if order.payment_status == PaymentStatus.PAID:
+        return _init_out(order, user, provider_order_id="paid", requires_payment=False)
+    if any(p.status == PaymentAttemptStatus.AUTHORIZED for p in order.payments):
+        raise Conflict(
+            "Your payment is authorized and awaiting confirmation. Please check your order status shortly.",
+            code="payment_awaiting_capture",
+        )
+    if order.status != OrderStatus.PENDING_PAYMENT:
+        raise Conflict("This order expired. Please place it again.", code="order_expired")
     if order.expires_at and order.expires_at <= utcnow():
         raise Conflict("This order expired. Please place it again.", code="order_expired")
 
     reusable = next(
         (p for p in reversed(order.payments)
          if p.status == PaymentAttemptStatus.CREATED and p.amount_paise == order.total_paise
-         and p.provider == settings.payment_mode),
+         and p.provider == PaymentProvider.RAZORPAY and p.provider_payment_id is None),
         None,
     )
     if reusable is None:
@@ -342,43 +444,71 @@ async def confirm_payment(
 ) -> Order:
     if not gateway.verify_signature(provider_order_id, provider_payment_id, signature):
         logger.warning("Invalid payment signature for order %s (source=%s)", order_number, source)
-        raise AppError("Payment verification failed. If money was deducted it will be refunded automatically.",
-                       code="payment_signature_invalid")
+        raise AppError(
+            "Payment verification failed. Check your order status and contact support if money was deducted.",
+            code="payment_signature_invalid",
+        )
 
     order = await get_order(db, order_number, user_id=user_id, lock=True)
-    payment = next((p for p in order.payments if p.provider_order_id == provider_order_id), None)
+    payment = _payment_for_attempt(order, provider_order_id, provider_payment_id, create=True)
     if payment is None:
         raise AppError("Payment does not belong to this order.", code="payment_mismatch")
 
-    if payment.status == PaymentAttemptStatus.CAPTURED:
+    if payment.status in (PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED):
         if payment.provider_payment_id != provider_payment_id:
             raise Conflict("This payment was already recorded with a different id.", code="payment_conflict")
         return order  # idempotent replay
-    if order.payment_status == PaymentStatus.PAID:
-        # Another attempt was already captured: this is a duplicate charge, refund it.
-        await _refund_duplicate(db, order, payment, provider_payment_id)
-        await db.commit()
-        return order
-
     remote = await gateway.fetch_payment(provider_payment_id)
-    if remote is not None:
-        if remote.get("order_id") != provider_order_id or int(remote.get("amount", -1)) != payment.amount_paise:
-            raise AppError("Payment details do not match the order.", code="payment_mismatch")
-        if remote.get("status") not in ("captured", "authorized"):
-            raise AppError("Payment is not complete yet.", code="payment_incomplete")
-        payment.method = str(remote.get("method") or "")[:32] or None
-
+    try:
+        remote_amount = int(remote.get("amount", -1))
+    except (TypeError, ValueError):
+        remote_amount = -1
+    if (
+        remote.get("id") != provider_payment_id
+        or remote.get("order_id") != provider_order_id
+        or remote_amount != payment.amount_paise
+        or remote.get("currency") != "INR"
+        or payment.currency != "INR"
+    ):
+        raise AppError("Payment details do not match the order.", code="payment_mismatch")
+    payment.method = str(remote.get("method") or "")[:32] or None
+    if remote.get("status") == "authorized":
+        payment.provider_payment_id = provider_payment_id
+        payment.status = PaymentAttemptStatus.AUTHORIZED
+        payment.error_code = None
+        payment.error_description = "Payment authorized; awaiting capture."
+        await db.commit()
+        raise AppError(
+            "Your payment is authorized and awaiting confirmation. Please check your order status shortly.",
+            code="payment_awaiting_capture",
+            status_code=409,
+        )
+    if remote.get("status") != "captured":
+        raise AppError("Payment has not been captured.", code="payment_incomplete")
     payment.provider_payment_id = provider_payment_id
     payment.signature = signature
     payment.status = PaymentAttemptStatus.CAPTURED
     if payment.amount_paise != order.total_paise:
         raise AppError("Payment amount does not match the order total.", code="payment_amount_mismatch")
+    if order.payment_status in (PaymentStatus.PAID, PaymentStatus.REFUNDED):
+        await _refund_duplicate(db, order, payment, provider_payment_id)
+        await db.commit()
+        return order
 
+    if order.status == OrderStatus.CANCELLED:
+        order.payment_status = PaymentStatus.PAID
+        order.paid_at = utcnow()
+        await _issue_refund(db, order, note="Payment was captured after the order was cancelled.")
+        await db.commit()
+        return order
     if order.status == OrderStatus.EXPIRED:
         if not await _re_reserve(db, order):
             await db.flush()
             order.payment_status = PaymentStatus.PAID
             order.paid_at = utcnow()
+            order.status = OrderStatus.CANCELLED
+            order.cancelled_at = utcnow()
+            _event(order, OrderStatus.CANCELLED, "Payment arrived after expiry; refund requested.")
             await _issue_refund(db, order, note="Paid after the order expired and items were no longer available.")
             await db.commit()
             return order
@@ -500,49 +630,252 @@ def normalize_gift_code(code: str) -> str:
     return cleaned[5:] if cleaned.startswith("SPUNI") else cleaned
 
 
-async def mark_payment_failed(db: AsyncSession, *, order_number: str, provider_order_id: str,
-                              user_id: int | None, reason: str | None) -> None:
+async def mark_payment_authorized(
+    db: AsyncSession, *, order_number: str, provider_order_id: str, provider_payment_id: str,
+    amount_paise: object, currency: object, method: object = None, user_id: int | None = None,
+) -> None:
     order = await get_order(db, order_number, user_id=user_id, lock=True)
-    payment = next((p for p in order.payments if p.provider_order_id == provider_order_id), None)
-    if payment is None or payment.status != PaymentAttemptStatus.CREATED:
+    base = next((p for p in order.payments if p.provider_order_id == provider_order_id), None)
+    if base is None:
         return
-    payment.status = PaymentAttemptStatus.FAILED
-    payment.error_description = (reason or "Payment failed or was cancelled")[:500]
+    try:
+        if int(amount_paise) != base.amount_paise:
+            return
+    except (TypeError, ValueError):
+        return
+    if currency != "INR":
+        return
+    payment = _payment_for_attempt(order, provider_order_id, provider_payment_id, create=True)
+    if payment is None or payment.status in (PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED):
+        return
+    if payment.status == PaymentAttemptStatus.FAILED and payment.provider_payment_id == provider_payment_id:
+        return
+    if payment.provider_payment_id not in (None, provider_payment_id):
+        raise Conflict("This payment attempt is already linked to another payment.", code="payment_conflict")
+    payment.provider_payment_id = provider_payment_id
+    payment.status = PaymentAttemptStatus.AUTHORIZED
+    payment.method = method[:32] if isinstance(method, str) else None
+    payment.error_code = None
+    payment.error_description = "Payment authorized; awaiting capture."
+    payment.failure_source = None
     await db.commit()
+
+
+async def mark_payment_failed(
+    db: AsyncSession, *, order_number: str, provider_order_id: str, user_id: int | None,
+    reason: object = None, error_code: object = None, source: str = "checkout",
+    provider_payment_id: object = None, amount_paise: object = None, currency: object = None,
+) -> None:
+    order = await get_order(db, order_number, user_id=user_id, lock=True)
+    payment = _payment_for_attempt(
+        order, provider_order_id,
+        provider_payment_id if isinstance(provider_payment_id, str) else None,
+        create=False,
+    )
+    if payment is not None and payment.status in (PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED):
+        return
+
+    if source == "checkout" and isinstance(provider_payment_id, str):
+        base_payment = next((p for p in order.payments if p.provider_order_id == provider_order_id), None)
+        if base_payment is None:
+            return
+        remote = await gateway.fetch_payment(provider_payment_id)
+        try:
+            remote_amount = int(remote.get("amount", -1))
+        except (TypeError, ValueError):
+            remote_amount = -1
+        if (
+            remote.get("id") != provider_payment_id
+            or remote.get("order_id") != provider_order_id
+            or remote_amount != (payment.amount_paise if payment is not None else base_payment.amount_paise)
+            or remote.get("currency") != "INR"
+        ):
+            logger.warning("Client reported a mismatched payment failure for order %s", order_number)
+            return
+        if remote.get("status") == "captured":
+            await confirm_payment(
+                db, order_number=order_number, provider_order_id=provider_order_id,
+                provider_payment_id=provider_payment_id, signature=gateway.sign(provider_order_id, provider_payment_id),
+                user_id=user_id, source="failure_reconciliation",
+            )
+            return
+        if remote.get("status") == "authorized":
+            await mark_payment_authorized(
+                db, order_number=order_number, provider_order_id=provider_order_id,
+                provider_payment_id=provider_payment_id, method=remote.get("method"),
+                amount_paise=remote_amount, currency=remote.get("currency"), user_id=user_id,
+            )
+            return
+        if remote.get("status") != "failed":
+            return
+        reason = remote.get("error_description")
+        error_code = remote.get("error_code")
+        source = "razorpay_api"
+    elif source in {"razorpay_webhook", "razorpay_api"}:
+        if not isinstance(provider_payment_id, str):
+            return
+        base_payment = next((p for p in order.payments if p.provider_order_id == provider_order_id), None)
+        if base_payment is None or amount_paise is None or currency != "INR":
+            return
+        try:
+            if int(amount_paise) != base_payment.amount_paise:
+                return
+        except (TypeError, ValueError):
+            return
+    else:
+        # A browser-provided reason is useful context, but cannot prove a payment failed.
+        if payment is None:
+            return
+        payment.failure_source = "checkout_report"
+        payment.error_code = error_code[:64] if isinstance(error_code, str) else None
+        payment.error_description = reason[:500] if isinstance(reason, str) and reason else \
+            "The customer reported a payment failure; awaiting Razorpay confirmation."
+        await db.commit()
+        return
+
+    if payment is None:
+        payment = _payment_for_attempt(
+            order, provider_order_id,
+            provider_payment_id if isinstance(provider_payment_id, str) else None,
+            create=True,
+        )
+    if payment is None:
+        return
+    if payment.provider_payment_id not in (None, provider_payment_id):
+        raise Conflict("This payment attempt is already linked to another payment.", code="payment_conflict")
+    payment.provider_payment_id = provider_payment_id
+    payment.status = PaymentAttemptStatus.FAILED
+    payment.error_code = error_code[:64] if isinstance(error_code, str) else None
+    payment.error_description = (
+        reason[:500] if isinstance(reason, str) and reason else "Razorpay reported payment failure."
+    )
+    payment.failure_source = source[:24]
+    await db.commit()
+
+
+async def _sync_refund_completion(db: AsyncSession, order: Order) -> None:
+    captured = [
+        p for p in order.payments
+        if p.provider_payment_id and p.status in (PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED)
+    ]
+    if not captured or not all(
+        p.refund_status == "processed" and p.refund_amount_paise == p.amount_paise for p in captured
+    ):
+        return
+    if order.status not in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
+        await _reverse_wallet(db, order)
+    for payment in captured:
+        payment.status = PaymentAttemptStatus.REFUNDED
+    order.payment_status = PaymentStatus.REFUNDED
+    if order.status not in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
+        order.status = OrderStatus.REFUNDED
+        _event(order, OrderStatus.REFUNDED, "Razorpay confirmed the refund.")
+        await _notify_status(db, order, OrderStatus.REFUNDED, None)
+
+
+async def mark_refund_event(
+    db: AsyncSession, *, provider_payment_id: object, refund_id: object, amount_paise: int,
+    status: str, reason: object = None,
+) -> None:
+    if (
+        not isinstance(provider_payment_id, str)
+        or not provider_payment_id.startswith("pay_")
+        or not isinstance(refund_id, str)
+        or not refund_id.startswith("rfnd_")
+        or amount_paise <= 0
+        or status not in {"created", "processed", "failed"}
+    ):
+        return
+    order_number = await db.scalar(
+        select(Order.number).join(Payment).where(Payment.provider_payment_id == provider_payment_id)
+    )
+    if order_number is None:
+        logger.warning("Ignoring refund webhook for unknown payment.")
+        return
+    order = await get_order(db, order_number, lock=True)
+    payment = next((p for p in order.payments if p.provider_payment_id == provider_payment_id), None)
+    if (
+        payment is None
+        or payment.status not in (PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED)
+        or amount_paise > payment.amount_paise
+    ):
+        logger.warning("Ignoring mismatched refund webhook for order %s", order_number)
+        return
+    if payment.refund_status == "processed" and status != "processed":
+        return
+    if payment.refund_id == refund_id and payment.refund_status == "failed" and status != "processed":
+        return
+    payment.refund_id = refund_id
+    payment.refund_status = "pending" if status == "created" else status
+    payment.refund_amount_paise = amount_paise
+    payment.refund_error = reason[:500] if isinstance(reason, str) and reason else None
+    if status == "processed" and amount_paise == payment.amount_paise:
+        payment.status = PaymentAttemptStatus.REFUNDED
+    await _sync_refund_completion(db, order)
+    await db.commit()
+
+
+async def _start_refund(db: AsyncSession, order: Order, payment: Payment, note: str) -> None:
+    if not payment.provider_payment_id or payment.refund_status is not None:
+        return
+    payment.refund_status = "requested"
+    payment.refund_amount_paise = payment.amount_paise
+    payment.refund_error = None
+    await db.commit()
+    try:
+        result = await gateway.refund(
+            payment.provider_payment_id,
+            payment.amount_paise,
+            {"reason": "duplicate_payment" if note == "duplicate payment" else "order_refund",
+             "order": order.number},
+        )
+        payment.refund_id = result["id"]
+        payment.refund_status = result["status"]
+        payment.refund_amount_paise = int(result["amount"])
+        payment.refund_error = None
+        if payment.refund_status == "processed" and payment.refund_amount_paise == payment.amount_paise:
+            payment.status = PaymentAttemptStatus.REFUNDED
+        await _sync_refund_completion(db, order)
+        await db.commit()
+    except AppError as exc:
+        payment.refund_status = "unknown" if exc.code in {
+            "gateway_unavailable", "gateway_invalid_response", "refund_invalid_response"
+        } else "failed"
+        gateway_description = exc.details.get("gateway_description") if isinstance(exc.details, dict) else None
+        detail = f"{exc.message} {gateway_description}" if isinstance(gateway_description, str) else exc.message
+        payment.refund_error = detail[:500]
+        await _admin_alert(db, f"Manual refund needed for {order.number}",
+                           [f"Refund for payment {payment.provider_payment_id} needs review.",
+                            f"Refund status: {payment.refund_status}.", payment.refund_error],
+                           f"/orders/{order.number}")
+        await db.commit()
 
 
 async def _refund_duplicate(db: AsyncSession, order: Order, payment: Payment, provider_payment_id: str) -> None:
     payment.provider_payment_id = provider_payment_id
-    payment.status = PaymentAttemptStatus.REFUNDED
-    try:
-        await gateway.refund(provider_payment_id, payment.amount_paise, {"reason": "duplicate", "order": order.number})
-    except AppError:
-        payment.error_description = "Duplicate payment: automatic refund failed, refund manually."
-        await _admin_alert(db, f"Manual refund needed for {order.number}",
-                           [f"Duplicate payment {provider_payment_id} could not be refunded automatically."],
-                           f"/orders/{order.number}")
+    await _start_refund(db, order, payment, "duplicate payment")
 
 
 async def _issue_refund(db: AsyncSession, order: Order, note: str) -> None:
     captured = [p for p in order.payments if p.status == PaymentAttemptStatus.CAPTURED and p.provider_payment_id]
-    failed = False
+    if not captured and order.total_paise == 0:
+        order.payment_status = PaymentStatus.REFUNDED
+        if order.status not in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
+            order.status = OrderStatus.REFUNDED
+            _event(order, OrderStatus.REFUNDED, note)
+        return
     for payment in captured:
-        try:
-            await gateway.refund(payment.provider_payment_id or "", payment.amount_paise,
-                                 {"order": order.number, "reason": note[:200]})
-            payment.status = PaymentAttemptStatus.REFUNDED
-        except AppError:
-            failed = True
-    if captured:
-        order.payment_status = PaymentStatus.REFUNDED if not failed else PaymentStatus.PAID
-    if failed:
-        await _admin_alert(db, f"Manual refund needed for {order.number}",
-                           ["The automatic refund failed. Refund it from the Razorpay dashboard.", note],
-                           f"/orders/{order.number}")
-    if order.status not in (OrderStatus.CANCELLED, OrderStatus.REFUNDED):
-        order.status = OrderStatus.CANCELLED
-        order.cancelled_at = utcnow()
-        _event(order, OrderStatus.CANCELLED, note)
+        if payment.provider != PaymentProvider.RAZORPAY:
+            if payment.refund_status is None:
+                payment.refund_status = "unknown"
+                payment.refund_error = "Legacy payment requires manual refund reconciliation."
+                await _admin_alert(
+                    db, f"Manual refund needed for {order.number}",
+                    ["This historical payment is not a Razorpay transaction.", payment.refund_error],
+                    f"/orders/{order.number}",
+                )
+            continue
+        await _start_refund(db, order, payment, note)
 
 
 # --------------------------------------------------------------- reversals
@@ -656,6 +989,19 @@ async def update_status(
     if status not in TRANSITIONS.get(order.status, set()):
         raise Conflict(f"An order that is {order.status.replace('_', ' ')} cannot move to "
                        f"{status.replace('_', ' ')}.", code="invalid_transition")
+    if status == OrderStatus.REFUNDED:
+        await _issue_refund(db, order, note or "Refund requested")
+        if order.payment_status == PaymentStatus.REFUNDED:
+            await _reverse_wallet(db, order)
+            if order.status != OrderStatus.REFUNDED:
+                order.status = OrderStatus.REFUNDED
+                _event(order, OrderStatus.REFUNDED, note or "Refund completed.")
+            if notify:
+                await _notify_status(db, order, OrderStatus.REFUNDED, note)
+        else:
+            _event(order, order.status, "Refund requested; awaiting Razorpay confirmation.")
+        await db.commit()
+        return order
     now = utcnow()
     if status == OrderStatus.SHIPPED:
         if not tracking_number:
@@ -670,9 +1016,6 @@ async def update_status(
     if status == OrderStatus.DELIVERED:
         order.delivered_at = now
     order.status = status
-    if status == OrderStatus.REFUNDED:
-        await _reverse_wallet(db, order)
-        await _issue_refund(db, order, note=note or "Refund issued")
     _event(order, status, note, actor.id)
     if notify:
         await _notify_status(db, order, status, note)

@@ -3,7 +3,9 @@ import os
 os.environ["ENVIRONMENT"] = "test"
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://spuni:spuni@localhost:5432/spuni_test")
 os.environ["EMAIL_BACKEND"] = "console"
-os.environ["PAYMENT_MODE"] = "mock"
+os.environ["RAZORPAY_KEY_ID"] = "rzp_test_spuni"
+os.environ["RAZORPAY_KEY_SECRET"] = "test-key-secret"
+os.environ["RAZORPAY_WEBHOOK_SECRET"] = "test-webhook-secret"
 
 import subprocess  # noqa: E402
 import sys  # noqa: E402
@@ -17,8 +19,74 @@ from app.db.session import SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Category, EmailOutbox, Product, User, Wallet  # noqa: E402
 from app.models.enums import UserRole  # noqa: E402
+from app.services import payment_gateway  # noqa: E402
+from app.services.payment_gateway import GatewayOrder  # noqa: E402
 
 BACKEND = Path(__file__).resolve().parent.parent
+
+
+class FakeRazorpay:
+    def __init__(self) -> None:
+        self.next_id = 1
+        self.orders: dict[str, dict] = {}
+        self.payments: dict[str, dict] = {}
+
+    def reset(self) -> None:
+        self.next_id = 1
+        self.orders.clear()
+        self.payments.clear()
+
+    async def create_order(self, *, amount_paise: int, receipt: str, notes: dict[str, str]) -> GatewayOrder:
+        provider_order_id = f"order_test_{self.next_id}"
+        self.next_id += 1
+        raw = {"id": provider_order_id, "amount": amount_paise, "currency": "INR", "status": "created"}
+        self.orders[provider_order_id] = raw
+        return GatewayOrder("razorpay", provider_order_id, amount_paise, raw)
+
+    def capture(self, provider_order_id: str) -> str:
+        payment_id = f"pay_test_{self.next_id}"
+        self.next_id += 1
+        order = self.orders[provider_order_id]
+        self.payments[payment_id] = {
+            "id": payment_id, "order_id": provider_order_id, "amount": order["amount"], "currency": "INR",
+            "status": "captured", "method": "card",
+        }
+        return payment_id
+
+    def fail_payment(self, provider_order_id: str) -> str:
+        payment_id = f"pay_test_{self.next_id}"
+        self.next_id += 1
+        order = self.orders[provider_order_id]
+        self.payments[payment_id] = {
+            "id": payment_id, "order_id": provider_order_id, "amount": order["amount"], "currency": "INR",
+            "status": "failed", "error_code": "PAYMENT_FAILED", "error_description": "Bank declined the payment",
+        }
+        return payment_id
+
+    async def fetch_payment(self, provider_payment_id: str) -> dict:
+        return self.payments[provider_payment_id]
+
+    async def fetch_order_payments(self, provider_order_id: str) -> list[dict]:
+        return [payment for payment in self.payments.values() if payment["order_id"] == provider_order_id]
+
+    async def refund(self, provider_payment_id: str, amount_paise: int, notes: dict[str, str]) -> dict:
+        refund_id = f"rfnd_test_{self.next_id}"
+        self.next_id += 1
+        return {
+            "id": refund_id, "payment_id": provider_payment_id, "amount": amount_paise, "status": "processed",
+        }
+
+
+fake_razorpay = FakeRazorpay()
+
+
+@pytest.fixture(autouse=True)
+def fake_razorpay_gateway(monkeypatch):
+    fake_razorpay.reset()
+    monkeypatch.setattr(payment_gateway, "create_order", fake_razorpay.create_order)
+    monkeypatch.setattr(payment_gateway, "fetch_payment", fake_razorpay.fetch_payment)
+    monkeypatch.setattr(payment_gateway, "fetch_order_payments", fake_razorpay.fetch_order_payments)
+    monkeypatch.setattr(payment_gateway, "refund", fake_razorpay.refund)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -77,7 +77,7 @@ class CheckoutIn(InputModel):
 
 class PaymentInitOut(OutputModel):
     order_number: str
-    provider: Literal["mock", "razorpay"]
+    provider: Literal["razorpay"]
     key_id: str | None
     provider_order_id: str
     amount_paise: int
@@ -101,6 +101,8 @@ class PaymentFailIn(InputModel):
     order_number: Annotated[str, Field(pattern=r"^SPN[0-9A-Z-]{6,20}$")]
     provider_order_id: Annotated[str, Field(min_length=6, max_length=64, pattern=r"^[A-Za-z0-9_]+$")]
     reason: SafeText(0, 300) | None = None
+    error_code: SafeText(0, 64) | None = None
+    provider_payment_id: Annotated[str, Field(min_length=6, max_length=64, pattern=r"^[A-Za-z0-9_]+$")] | None = None
 
 
 class OrderItemOut(OutputModel):

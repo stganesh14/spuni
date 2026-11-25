@@ -8,9 +8,14 @@
       <h1 class="title">Almost <em>yours.</em></h1>
     </header>
 
-    @if (!cart.items().length && !pending()) {
+    @if (restoringPending()) {
+      <p class="panel muted" role="status">Checking your pending payment…</p>
+    } @else if (!cart.items().length && !pending() && !hasSavedPendingOrder()) {
       <app-empty-state icon="bi-bag" title="Your bag is empty" text="Add a piece or two before checking out." actionLink="/shop" />
     } @else {
+      @if (error() && !cart.items().length && !pending()) {
+        <p class="alert error" role="alert">{{ error() }}</p>
+      }
       <div class="layout">
         <div class="col">
           <section class="block panel">
@@ -132,7 +137,11 @@
 
           @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
 
-          @if (pending() && !placing()) {
+          @if (hasSavedPendingOrder() && !pending() && !restoringPending()) {
+            <button type="button" class="btn btn-primary btn-block" (click)="retryRestorePending()">
+              Check pending order status <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          } @else if (pending() && !placing()) {
             <button type="button" class="btn btn-primary btn-block" (click)="retryPayment()">
               Pay {{ pending()!.amount_paise | inr }} now <i class="bi bi-lock"></i></button>
             <p class="muted small">Order {{ pending()!.order_number }} is reserved for 30 minutes.</p>
