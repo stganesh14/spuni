@@ -76,18 +76,12 @@ export class Header {
 
   protected readonly headerText1 = computed(() => {
     const items = this.textItems(this.store.info()?.header_text_1);
-    return items.length ? items : [
-      'Free shipping over ₹3000',
-      'Earn up to 5% as Spuni Cash',
-    ];
+    return items.length ? items.slice(0, 1) : ['Free shipping over ₹3000'];
   });
 
   protected readonly headerText2 = computed(() => {
     const items = this.textItems(this.store.info()?.header_text_2);
-    return items.length ? items : [
-      'Handcrafted slaughter-free leather, Chennai',
-      'Free monogramming on customisable pieces',
-    ];
+    return items.length ? items.slice(0, 1) : ['Handcrafted slaughter-free leather, Chennai'];
   });
 
   /** Product lists for the Men / Women panels, grouped by category. */

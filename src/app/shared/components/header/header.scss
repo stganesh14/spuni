@@ -40,10 +40,29 @@
     white-space: nowrap;
   }
 
-  i {
+  .announce-divider {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 26px;
     font-style: normal;
     color: var(--gold-light);
-    font-size: 0.55rem;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.7;
+    }
+
+    span {
+      width: 5px;
+      height: 5px;
+      border: 1px solid currentColor;
+      transform: rotate(45deg);
+    }
   }
 
   .announce-copy {

@@ -130,8 +130,8 @@ export class SettingsPage {
       gift_card_validity_days: String(s.gift_card_validity_days),
       support_email: s.support_email,
       support_phone: s.support_phone,
-      header_text_1: s.header_text_1,
-      header_text_2: s.header_text_2,
+      header_text_1: s.header_text_1.split(/\r?\n/, 1)[0] ?? '',
+      header_text_2: s.header_text_2.split(/\r?\n/, 1)[0] ?? '',
       customization_marquee_text: s.customization_marquee_text,
     });
     this.updatedAt.set(s.updated_at ?? null);
