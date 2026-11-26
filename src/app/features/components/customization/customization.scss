@@ -60,7 +60,7 @@
   }
 
   &.w1 {
-    @include up($bp-md) { margin-top: 48px; }
+    @include up(1024px) { margin-top: 0; }
   }
 }
 

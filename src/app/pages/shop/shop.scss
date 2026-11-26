@@ -179,6 +179,14 @@
   &:nth-child(3n + 2) { margin-top: clamp(0px, 3vw, 36px); }
 }
 
+@include up(1024px) {
+  .float-card {
+    animation: card-in 0.9s var(--ease-out) both calc(var(--i, 0) * 70ms);
+
+    &:nth-child(3n + 2) { margin-top: 0; }
+  }
+}
+
 @keyframes card-in {
   from { opacity: 0; transform: translateY(60px) rotate(2deg) scale(0.95); }
 }
