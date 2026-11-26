@@ -3,12 +3,14 @@ messages, email log and store settings."""
 
 from datetime import timedelta
 from typing import Annotated, Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Date, case, cast, delete, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import DB, Admin, current_admin
+from app.core.config import settings
 from app.core.errors import AppError, Conflict, NotFound
 from app.core.security import utcnow
 from app.models import (
@@ -39,6 +41,7 @@ from app.schemas.admin import (
     AdminCustomizationOut,
     AdminGiftCardOut,
     AdminNoteIn,
+    AdminOrderItemRow,
     AdminOrderOut,
     AdminOrderRow,
     AdminUserIn,
@@ -159,6 +162,13 @@ def _order_row(order: Order) -> AdminOrderRow:
         number=order.number, order_type=order.order_type, status=order.status, payment_status=order.payment_status,
         total_paise=order.total_paise, item_count=sum(i.quantity for i in order.items),
         customer_name=order.ship_name or order.user.full_name, email=order.email, is_gift=order.is_gift,
+        items=[AdminOrderItemRow(
+            id=item.id, product_id=item.product_id, product_name=item.product_name, color_name=item.color_name,
+            product_url=(
+                f"{settings.storefront_url.rstrip('/')}/product/{quote(item.product_slug, safe='')}"
+                if item.product_id is not None and item.product_slug else None
+            ),
+        ) for item in order.items],
         created_at=order.created_at, allowed_transitions=_allowed_transitions(order),
     )
 

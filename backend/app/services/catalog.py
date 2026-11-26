@@ -40,6 +40,7 @@ def product_card(product: Product) -> ProductCard:
         hover_image_url=next((image.url for image in images if image is not primary), None),
         in_stock=product.stock > 0,
         is_customizable=product.is_customizable,
+        color_count=len(product.colors),
         gender=product.gender,
         category=CategoryRef(id=product.category.id, name=product.category.name, slug=product.category.slug),
     )

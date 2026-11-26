@@ -56,8 +56,10 @@
     </button>
 
     <button type="button" class="quick-add" (click)="addToBag($event)" [disabled]="!product().in_stock">
-      <span>{{ product().in_stock ? 'Add to bag' : 'Sold out' }}</span>
-      <i class="bi bi-bag-plus"></i>
+      <span>
+        {{ !product().in_stock ? 'Sold out' : product().color_count > 1 ? 'Choose color' : 'Add to bag' }}
+      </span>
+      <i class="bi" [class.bi-palette]="product().color_count > 1" [class.bi-bag-plus]="product().color_count <= 1"></i>
     </button>
   </div>
 

@@ -108,8 +108,10 @@ export class CartService {
     this.items.set([]);
   }
 
-  has(productId: number): boolean {
-    return this.items().some((i) => i.product_id === productId);
+  has(productId: number, colorId?: number | null): boolean {
+    return this.items().some(
+      (i) => i.product_id === productId && (colorId === undefined || i.color_id === colorId),
+    );
   }
 
   private load(): CartItem[] {

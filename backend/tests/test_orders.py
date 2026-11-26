@@ -5,7 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
-from app.models import Product
+from app.models import Product, ProductColor
 from app.services.payment_gateway import sign
 from app.services.pricing import reward_for
 from tests.conftest import fake_razorpay, login
@@ -44,6 +44,90 @@ async def test_quote_is_server_priced(client, catalog):
                    "total_paise": 1, "price": 0}],
     })
     assert r.status_code == 422
+
+
+async def test_color_choice_rules_and_admin_order_color(client, catalog):
+    async with SessionLocal() as s:
+        category_id = await s.scalar(select(Product.category_id).where(Product.id == catalog["wallet"]))
+        single = Product(
+            category_id=category_id, name="Single Color Test", slug="single-color-test",
+            sku="TST-SINGLE-01", price_paise=100000, stock=5,
+        )
+        multi = Product(
+            category_id=category_id, name="Multi Color Test", slug="multi-color-test",
+            sku="TST-MULTI-01", price_paise=100000, stock=5,
+        )
+        s.add_all([single, multi])
+        await s.flush()
+        single_color = ProductColor(product_id=single.id, name="Natural", hex_code="#AABBCC")
+        multi_colors = [
+            ProductColor(product_id=multi.id, name="Black", hex_code="#112233"),
+            ProductColor(product_id=multi.id, name="Brown", hex_code="#445566"),
+        ]
+        s.add_all([single_color, *multi_colors])
+        await s.flush()
+        single_id, multi_id, color_id = single.id, multi.id, multi_colors[0].id
+        multi_color_ids = [color.id for color in multi_colors]
+        await s.commit()
+
+    quote = await client.post("/api/v1/cart/quote", json={
+        "items": [{"product_id": single_id, "quantity": 1}],
+    })
+    assert quote.status_code == 200
+    assert quote.json()["has_issues"] is False
+    assert quote.json()["lines"][0]["color_name"] == "Natural"
+
+    buyer = await login(client, "single-color@example.com")
+    checkout = await client.post("/api/v1/checkout", headers=auth(buyer), json={
+        "items": [{"product_id": single_id, "quantity": 1}],
+        "address": ADDRESS,
+        "idempotency_key": uuid.uuid4().hex,
+    })
+    assert checkout.status_code == 200, checkout.text
+
+    admin = await login(client, "admin@spuni.in", admin=True)
+    orders = await client.get("/api/v1/admin/orders", headers=auth(admin))
+    assert orders.status_code == 200, orders.text
+    row = next(item for item in orders.json()["items"] if item["number"] == checkout.json()["order_number"])
+    assert row["items"][0]["product_id"] == single_id
+    assert row["items"][0]["color_name"] == "Natural"
+    assert row["items"][0]["product_url"].endswith("/product/single-color-test")
+
+    missing_color = await client.post("/api/v1/cart/quote", json={
+        "items": [{"product_id": multi_id, "quantity": 1}],
+    })
+    assert missing_color.status_code == 200
+    assert missing_color.json()["has_issues"] is True
+
+    selected_color = await client.post("/api/v1/cart/quote", json={
+        "items": [{"product_id": multi_id, "quantity": 1, "color_id": color_id}],
+    })
+    assert selected_color.status_code == 200
+    assert selected_color.json()["has_issues"] is False
+    both_colors = await client.post("/api/v1/cart/quote", json={
+        "items": [
+            {"product_id": multi_id, "quantity": 1, "color_id": multi_color_ids[0]},
+            {"product_id": multi_id, "quantity": 1, "color_id": multi_color_ids[1]},
+        ],
+    })
+    assert both_colors.status_code == 200
+    assert both_colors.json()["has_issues"] is False
+    assert {line["color_name"] for line in both_colors.json()["lines"]} == {"Black", "Brown"}
+    multi_checkout = await client.post("/api/v1/checkout", headers=auth(buyer), json={
+        "items": [
+            {"product_id": multi_id, "quantity": 1, "color_id": multi_color_ids[0]},
+            {"product_id": multi_id, "quantity": 1, "color_id": multi_color_ids[1]},
+        ],
+        "address": ADDRESS,
+        "idempotency_key": uuid.uuid4().hex,
+    })
+    assert multi_checkout.status_code == 200, multi_checkout.text
+    orders = await client.get("/api/v1/admin/orders", headers=auth(admin))
+    multi_row = next(
+        item for item in orders.json()["items"] if item["number"] == multi_checkout.json()["order_number"]
+    )
+    assert len(multi_row["items"]) == 2
+    assert {item["color_name"] for item in multi_row["items"]} == {"Black", "Brown"}
 
 
 async def test_checkout_requires_login(client, catalog):

@@ -249,6 +249,12 @@
 
 @keyframes blink { 50% { opacity: 0.25; } }
 
+.color-required {
+  margin: 8px 0 0;
+  color: var(--burgundy);
+  font-size: 0.82rem;
+}
+
 .buy {
   display: flex;
   gap: 10px;

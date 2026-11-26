@@ -110,7 +110,7 @@ async def wishlist(db: DB, user: Customer) -> list[ProductCard]:
             select(Product)
             .join(WishlistItem, WishlistItem.product_id == Product.id)
             .where(WishlistItem.user_id == user.id, Product.is_active.is_(True))
-            .options(selectinload(Product.images), selectinload(Product.category))
+            .options(selectinload(Product.images), selectinload(Product.category), selectinload(Product.colors))
             .order_by(WishlistItem.created_at.desc())
         )
     ).scalars().all()

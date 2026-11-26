@@ -267,6 +267,14 @@ class AdminNoteIn(InputModel):
     admin_note: SafeText(0, 4000) | None = None
 
 
+class AdminOrderItemRow(OutputModel):
+    id: int
+    product_id: int | None
+    product_name: str
+    color_name: str | None
+    product_url: str | None
+
+
 class AdminOrderRow(OutputModel):
     number: str
     order_type: str
@@ -277,6 +285,7 @@ class AdminOrderRow(OutputModel):
     customer_name: str | None
     email: str
     is_gift: bool
+    items: list[AdminOrderItemRow]
     created_at: datetime
     allowed_transitions: list[str]
 

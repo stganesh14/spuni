@@ -50,6 +50,7 @@ class ProductCard(OutputModel):
     hover_image_url: str | None
     in_stock: bool
     is_customizable: bool
+    color_count: int
     gender: str
     category: CategoryRef
 

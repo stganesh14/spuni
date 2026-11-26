@@ -44,6 +44,7 @@
               <th scope="col">Order</th>
               <th scope="col">Customer</th>
               <th scope="col">Items</th>
+              <th scope="col">Color</th>
               <th scope="col">Status</th>
               <th scope="col">Payment</th>
               <th scope="col" class="num">Total</th>
@@ -58,13 +59,40 @@
                   <div class="muted small">{{ o.created_at | dt: true }}</div>
                 </td>
                 <td data-label="Customer">
-                  <div>{{ o.customer_name || '—' }}</div>
+                  <div>
+                    {{ o.customer_name || '—' }}
+                    @for (item of o.items; track item.id) {
+                      @if (item.product_url; as productUrl) {
+                        <a class="icon-btn" [href]="productUrl" target="_blank" rel="noopener noreferrer"
+                           [attr.aria-label]="'View ' + item.product_name + ' on storefront'"
+                           [title]="'View on storefront: ' + item.product_name">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </a>
+                      }
+                    }
+                  </div>
                   <div class="muted small">{{ o.email }}</div>
                 </td>
                 <td data-label="Items">
                   {{ o.order_type === 'gift_card' ? 'Gift card' : o.item_count + ' item(s)' }}
                   @if (o.is_gift) {
                     <span class="badge" data-tone="gold">Gift</span>
+                  }
+                </td>
+                <td data-label="Color">
+                  @for (item of o.items; track item.id) {
+                    <div>
+                      {{ item.color_name || '—' }}
+                      @if (o.items.length > 1) {
+                        <span class="muted small"> · {{ item.product_name }}</span>
+                      }
+                    </div>
+                  } @empty {
+                    —
                   }
                 </td>
                 <td data-label="Status"><app-status [value]="o.status" /></td>

@@ -13,18 +13,17 @@ import { RevealTextDirective } from '../../../shared/directives/reveal-text.dire
     <section class="gift" aria-labelledby="gift-title">
       <div class="container grid">
         <div class="visual" aria-hidden="true">
+          <div class="visual-meta">
+            <span>01 / Curated for gifting</span>
+            <span>SPUNI · Chennai</span>
+          </div>
           <div class="parcel">
             <img [src]="giftImage()" alt="" loading="lazy" decoding="async" />
-            <span class="ribbon v"></span>
-            <span class="ribbon h"></span>
-            <span class="bow"><span class="loop l"></span><span class="loop r"></span><span class="knot"></span></span>
           </div>
-          <div class="tag">
-            <span class="hole"></span>
-            <span class="tag-to">For Amma</span>
-            <span class="tag-msg">Carry this everywhere. With love, always.</span>
+          <div class="gift-note">
+            <i class="bi bi-gift"></i>
+            <span>Wrapped by hand<small>With your note, for someone you love</small></span>
           </div>
-          <span class="stamp">Gift<br />wrapped</span>
         </div>
 
         <div class="copy">

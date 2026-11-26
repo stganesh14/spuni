@@ -255,8 +255,17 @@ export interface OrderRow {
   customer_name: string | null;
   email: string;
   is_gift: boolean;
+  items: OrderListItem[];
   created_at: string;
   allowed_transitions: OrderStatus[];
+}
+
+export interface OrderListItem {
+  id: number;
+  product_id: number | null;
+  product_name: string;
+  color_name: string | null;
+  product_url: string | null;
 }
 
 export interface OrderItem {

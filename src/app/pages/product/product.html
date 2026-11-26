@@ -71,7 +71,8 @@
         </div>
 
         @if (p.colors.length) {
-          <div class="color-picker" role="radiogroup" aria-label="Choose color">
+          <div class="color-picker" role="radiogroup" aria-label="Choose color"
+               [attr.aria-required]="p.colors.length > 1 ? 'true' : null">
             <span class="eyebrow">{{ selectedColorName() || 'Choose color' }}</span>
             <div class="swatches">
               @for (color of p.colors; track color.id) {
@@ -88,6 +89,9 @@
               }
             </div>
           </div>
+        }
+        @if (colorSelectionRequired()) {
+          <p class="color-required" role="status">Choose a color before adding this piece to your bag.</p>
         }
 
         <p class="stock" [class]="'stock ' + p.stock_status">
@@ -106,7 +110,8 @@
               <span aria-live="polite">{{ qty() }}</span>
               <button type="button" (click)="changeQty(1)" [disabled]="qty() >= maxQty()" aria-label="Increase quantity">+</button>
             </div>
-            <button type="button" class="btn btn-primary add" (click)="addToBag()" appMagnetic="0.15">
+            <button type="button" class="btn btn-primary add" (click)="addToBag()" appMagnetic="0.15"
+                    [disabled]="colorSelectionRequired()">
               @if (added()) { <i class="bi bi-check2"></i> Added to bag } @else { <i class="bi bi-bag-plus"></i> Add to bag }
             </button>
             <button type="button" class="icon-btn heart" [class.on]="saved()" (click)="wishlist.toggle(p)"
@@ -114,7 +119,7 @@
               <i class="bi" [class.bi-heart-fill]="saved()" [class.bi-heart]="!saved()"></i>
             </button>
           </div>
-          <button type="button" class="btn btn-block buy-now" (click)="buyNow()">Buy it now</button>
+          <button type="button" class="btn btn-block buy-now" (click)="buyNow()" [disabled]="colorSelectionRequired()">Buy it now</button>
         } @else {
           <a class="btn btn-block" [routerLink]="['/category', p.category.slug]">See similar pieces</a>
         }

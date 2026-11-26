@@ -17,6 +17,13 @@
   animation: failsafe 0.01s 7s forwards;
 }
 
+.filter-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 @keyframes failsafe {
   to { visibility: hidden; opacity: 0; pointer-events: none; }
 }
@@ -126,6 +133,7 @@
   line-height: 1.1;
   letter-spacing: 0.02em;
   color: var(--gold-light);
+  filter: url(#loader-thin-text);
 }
 
 .l-wrap {

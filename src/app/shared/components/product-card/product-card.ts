@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { ProductCard as Product } from '../../../core/api/models';
 import { CartService } from '../../../core/cart/cart.service';
@@ -17,6 +17,7 @@ import { InrPipe } from '../../pipes/inr.pipe';
 })
 export class ProductCardComponent {
   private readonly cart = inject(CartService);
+  private readonly router = inject(Router);
   private readonly zoom = inject(ZoomService);
   protected readonly wishlist = inject(WishlistService);
 
@@ -41,7 +42,13 @@ export class ProductCardComponent {
   addToBag(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.product().in_stock) this.cart.add(this.product());
+    const product = this.product();
+    if (!product.in_stock) return;
+    if (product.color_count > 1) {
+      void this.router.navigate(['/product', product.slug]);
+      return;
+    }
+    this.cart.add(product);
   }
 
   toggleWishlist(event: Event): void {

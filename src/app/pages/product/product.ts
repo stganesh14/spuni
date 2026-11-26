@@ -82,6 +82,10 @@ export class ProductPage {
   protected readonly open = signal<string | null>('details');
   protected readonly added = signal(false);
   protected readonly selectedColorId = signal<number | null>(null);
+  protected readonly colorSelectionRequired = computed(() => {
+    const p = this.p();
+    return !!p && p.colors.length > 1 && this.selectedColorId() === null;
+  });
 
   protected readonly images = computed(() => {
     const p = this.p();
@@ -130,7 +134,7 @@ export class ProductPage {
       untracked(() => {
         this.active.set(0);
         this.qty.set(1);
-        this.selectedColorId.set(p.colors?.[0]?.id ?? null);
+        this.selectedColorId.set(p.colors.length === 1 ? p.colors[0].id : null);
         this.seo.set({
           title: p.meta_title?.replace(/\s*\|\s*SPUNI.*$/i, '') || p.name,
           description: p.meta_description || p.short_description || p.description,
@@ -201,7 +205,7 @@ export class ProductPage {
 
   addToBag(): void {
     const p = this.p();
-    if (!p || p.stock_status === 'out_of_stock') return;
+    if (!p || p.stock_status === 'out_of_stock' || this.colorSelectionRequired()) return;
     this.cart.add(p, this.qty(), true, this.selectedColorId(), this.selectedColorName());
     this.added.set(true);
     setTimeout(() => this.added.set(false), 1800);
@@ -209,8 +213,11 @@ export class ProductPage {
 
   buyNow(): void {
     const p = this.p();
-    if (!p || p.stock_status === 'out_of_stock') return;
-    if (!this.cart.has(p.id)) this.cart.add(p, this.qty(), false, this.selectedColorId(), this.selectedColorName());
+    if (!p || p.stock_status === 'out_of_stock' || this.colorSelectionRequired()) return;
+    const alreadyInBag = p.colors.length > 1
+      ? this.cart.has(p.id, this.selectedColorId())
+      : this.cart.has(p.id);
+    if (!alreadyInBag) this.cart.add(p, this.qty(), false, this.selectedColorId(), this.selectedColorName());
     this.router.navigateByUrl('/checkout');
   }
 

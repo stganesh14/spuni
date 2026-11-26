@@ -163,7 +163,7 @@
 
 .word {
   display: flex;
-  width: min(66.75vw, 944px);
+  width: min(20vw, 360px);
   aspect-ratio: 178 / 64;
   margin: clamp(40px, 7vw, 90px) auto 0;
   overflow: hidden;

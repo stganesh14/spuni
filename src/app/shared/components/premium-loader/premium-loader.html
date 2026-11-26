@@ -1,5 +1,12 @@
 @if (loader.booting()) {
   <div class="intro" #root role="status" aria-live="polite" [attr.aria-label]="'Loading SPUNI, ' + percent() + ' percent'">
+    <svg class="filter-defs" aria-hidden="true">
+      <filter id="loader-thin-text" x="-10%" y="-10%" width="120%" height="120%">
+        <feMorphology in="SourceAlpha" operator="erode" radius="2.5" result="thin-alpha" />
+        <feComposite in="SourceGraphic" in2="thin-alpha" operator="in" />
+      </filter>
+    </svg>
+
     <div class="flap flap-top"><span class="grain"></span></div>
     <div class="flap flap-bottom"><span class="grain"></span></div>
     <div class="seam" aria-hidden="true"></div>

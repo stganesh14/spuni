@@ -23,10 +23,11 @@ class PricedCart:
     issues: list[str] = field(default_factory=list)
 
 
-def merge_lines(items: list[CartLineIn]) -> dict[int, int]:
-    merged: dict[int, int] = {}
+def merge_lines(items: list[CartLineIn]) -> dict[tuple[int, int | None], int]:
+    merged: dict[tuple[int, int | None], int] = {}
     for item in items:
-        merged[item.product_id] = min(10, merged.get(item.product_id, 0) + item.quantity)
+        key = (item.product_id, item.color_id)
+        merged[key] = merged.get(key, 0) + item.quantity
     return merged
 
 
@@ -60,10 +61,11 @@ async def price_cart(
     use_wallet: bool, gift_wrap: bool, lock: bool = False,
 ) -> PricedCart:
     merged = merge_lines(items)
+    product_ids = {product_id for product_id, _ in merged}
     query = (
         select(Product)
         .join(Product.category)
-        .where(Product.id.in_(merged.keys()))
+        .where(Product.id.in_(product_ids))
         .options(selectinload(Product.images), selectinload(Product.category), selectinload(Product.colors))
         .order_by(Product.id)
     )
@@ -74,9 +76,14 @@ async def price_cart(
     lines: list[QuoteLine] = []
     issues: list[str] = []
     subtotal = 0
-    for product_id, quantity in merged.items():
+    quantities_by_product: dict[int, int] = {}
+    for (product_id, _), quantity in merged.items():
+        quantities_by_product[product_id] = quantities_by_product.get(product_id, 0) + quantity
+    for (product_id, color_id), quantity in merged.items():
         product = products.get(product_id)
-        selected = next((item for item in items if item.product_id == product_id), None)
+        selected = next(
+            (item for item in items if item.product_id == product_id and item.color_id == color_id), None
+        )
         if product is None or not product.is_active or not isinstance(product.category, Category) \
                 or not product.category.is_active:
             issues.append(f"An item in your bag is no longer available (#{product_id}).")
@@ -85,13 +92,16 @@ async def price_cart(
         issue = None
         if available <= 0:
             issue = "Out of stock"
-        elif quantity > available:
+        elif quantities_by_product[product_id] > available:
             issue = f"Only {available} left"
         selected_color = next(
             (color for color in product.colors if selected and color.id == selected.color_id), None
         )
         if product.colors and selected_color is None:
-            issue = issue or "Choose a valid color"
+            if selected and selected.color_id is None and len(product.colors) == 1:
+                selected_color = product.colors[0]
+            else:
+                issue = issue or "Choose a valid color"
         elif not product.colors and selected and selected.color_id is not None:
             issue = issue or "This product has no color options"
         color_images = [image for image in product.images if selected_color and image.color_id == selected_color.id]

@@ -66,6 +66,7 @@ export interface ProductCard {
   hover_image_url: string | null;
   in_stock: boolean;
   is_customizable: boolean;
+  color_count: number;
   gender: Gender;
   category: CategoryRef;
 }
